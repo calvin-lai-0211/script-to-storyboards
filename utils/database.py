@@ -14,6 +14,7 @@ class Database:
         """
         self.create_scripts_table()
         self.create_flat_storyboard_table()
+        self.create_character_portraits_table()
 
     def _get_connection(self):
         return psycopg2.connect(**self.db_config)
@@ -270,6 +271,128 @@ class Database:
         finally:
             if conn:
                 conn.close()
+
+    def get_characters_for_episode(self, drama_name: str, episode_number: int):
+        """
+        Retrieves a list of unique character names for a specific episode of a drama.
+        """
+        conn = None
+        characters = []
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT unnest(characters) AS single_character
+                FROM flat_storyboards
+                WHERE drama_name = %s AND episode_number = %s;
+            """, (drama_name, episode_number))
+            
+            rows = cur.fetchall()
+            characters = [row[0] for row in rows]
+            print(f"Found characters for '{drama_name}' Episode {episode_number}: {characters}")
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error getting characters for episode: {error}")
+        finally:
+            if conn:
+                conn.close()
+        return characters
+
+    def create_character_portraits_table(self):
+        """
+        Creates the character_portraits table to store generated character image prompts and URLs.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS character_portraits (
+                id SERIAL PRIMARY KEY,
+                drama_name VARCHAR(255) NOT NULL,
+                episode_number INTEGER NOT NULL,
+                character_name VARCHAR(255) NOT NULL,
+                image_prompt TEXT,
+                image_url VARCHAR(255),
+                shots_appeared TEXT[],
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(drama_name, episode_number, character_name)
+            );
+            """)
+            conn.commit()
+            print("Successfully created/ensured the character_portraits table exists.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error creating character_portraits table: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
+
+    def get_shots_for_character_in_episode(self, drama_name: str, episode_number: int, character_name: str):
+        """
+        Retrieves a list of sub_shot_numbers where a character appears in a specific episode.
+        """
+        conn = None
+        shots = []
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT sub_shot_number
+                FROM flat_storyboards
+                WHERE drama_name = %s AND episode_number = %s AND %s = ANY(characters);
+            """, (drama_name, episode_number, character_name))
+            rows = cur.fetchall()
+            shots = [row[0] for row in rows]
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error getting shots for character: {error}")
+        finally:
+            if conn: conn.close()
+        return shots
+
+    def insert_character_portrait(self, drama_name: str, episode_number: int, character_name: str, image_prompt: str, shots_appeared: list):
+        """
+        Inserts or updates a character portrait record.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO character_portraits (drama_name, episode_number, character_name, image_prompt, shots_appeared)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (drama_name, episode_number, character_name)
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared;
+            """, (drama_name, episode_number, character_name, image_prompt, shots_appeared))
+            conn.commit()
+            print(f"Successfully inserted/updated portrait for '{character_name}' in '{drama_name}' Ep {episode_number}.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error inserting character portrait: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
+
+    def fetch_query(self, query: str, params: tuple = None):
+        """
+        Executes a SELECT query and fetches all results.
+        """
+        conn = None
+        results = []
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute(query, params)
+            
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+            for row in rows:
+                results.append(dict(zip(columns, row)))
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error executing fetch query: {error}")
+        finally:
+            if conn:
+                conn.close()
+        return results
 
 
 if __name__ == '__main__':

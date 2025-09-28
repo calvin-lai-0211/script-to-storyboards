@@ -20,8 +20,8 @@ RUNNINGHUB_API_CONFIG = {
     "base_url": "https://www.runninghub.cn",
     "upload_url": "https://www.runninghub.cn/task/openapi/upload",
     "run_url": "https://www.runninghub.cn/task/openapi/ai-app/run",
-    "status_url": "https://www.runninghub.cn/task/openapi/status",
-    "outputs_url": "https://www.runninghub.cn/task/openapi/outputs",
+    "status_url": "https://www.runninghub.cn/task/openapi/ai-app/task-status",
+    "outputs_url": "https://www.runninghub.cn/task/openapi/ai-app/task-outputs",
     "webapp_id": 1935285737619116034,  # 新的webapp_id
     "image_node_id": "2",             # 图片节点ID
     "model_node_id": "6",             # 模型节点ID（统一使用节点6）
