@@ -15,7 +15,7 @@ from io import BytesIO
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import YIZHAN_API_CONFIG
+from utils.config import YIZHAN_API_CONFIG
 
 # API密钥配置
 OPENAI_API_KEY = 'sk-MKLACC640iS1xVNwBb77Ae4251114d4f9aBd31Da26B4298e'
@@ -237,7 +237,8 @@ class YiZhanLLM:
             api_key: API密钥，如果不提供则使用配置文件中的密钥
             base_url: API基础URL，如果不提供则使用配置文件中的URL
         """
-        self.api_key = api_key or YIZHAN_API_CONFIG.get("api_key", OPENAI_API_KEY)
+        self.deepseek_api_key = YIZHAN_API_CONFIG.get("deepseek_api_key", OPENAI_API_KEY)
+        self.gemini_api_key = YIZHAN_API_CONFIG.get("gemini_api_key")
         self.default_api_key = YIZHAN_API_CONFIG.get("default_api_key", DEFAULT_API_KEY)
         self.base_url = base_url or YIZHAN_API_CONFIG.get("base_url", BASE_URL)
         
@@ -253,8 +254,11 @@ class YiZhanLLM:
         返回:
             API密钥
         """
-        if 'deepseek' in model.lower() or 'doubao' in model.lower():
-            return self.api_key
+        model_lower = model.lower()
+        if 'gemini' in model_lower:
+            return self.gemini_api_key
+        elif 'deepseek' in model_lower or 'doubao' in model_lower:
+            return self.deepseek_api_key
         else:
             return self.default_api_key
     
@@ -402,6 +406,53 @@ class YiZhanLLM:
         
         return self._make_request(api_key, model, messages, stream, max_tokens)
     
+    def _stream_request(self, headers: dict, data: dict) -> Generator[Tuple[str, str], None, None]:
+        """
+        执行流式API请求的生成器方法
+        """
+        response = requests.post(
+            f"{self.base_url}/chat/completions",
+            headers=headers,
+            json=data,
+            stream=True
+        )
+        # Immediately raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+
+        content_generated = False
+        reasoning_finished = False
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    line = line[6:]
+                    if line.strip() == '[DONE]':
+                        break
+                    try:
+                        chunk_data = json.loads(line)
+                        if 'choices' in chunk_data and chunk_data['choices']:
+                            delta = chunk_data['choices'][0].get('delta', {})
+                            
+                            # 处理推理内容
+                            if 'model_extra' in delta and 'reasoning_content' in delta['model_extra']:
+                                reasoning_chunk = delta['model_extra']['reasoning_content']
+                                yield '', reasoning_chunk
+                            
+                            # 当开始接收最终答案时，标记推理完成
+                            if 'content' in delta and delta['content'] and not reasoning_finished:
+                                reasoning_finished = True
+                                yield '', ''
+                            
+                            # 流式输出最终答案
+                            if 'content' in delta and delta['content']:
+                                content_generated = True
+                                yield delta['content'], ''
+                    except json.JSONDecodeError:
+                        continue
+        
+        if not content_generated:
+            raise ValueError("API returned a successful but empty response stream.")
+
     def _make_request(self, 
                      api_key: str,
                      model: str,
@@ -437,49 +488,16 @@ class YiZhanLLM:
         }
         
         if stream:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=data,
-                stream=True
-            )
-            
-            reasoning_finished = False
-            for line in response.iter_lines():
-                if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
-                        line = line[6:]
-                        if line.strip() == '[DONE]':
-                            break
-                        try:
-                            chunk_data = json.loads(line)
-                            if 'choices' in chunk_data and chunk_data['choices']:
-                                delta = chunk_data['choices'][0].get('delta', {})
-                                
-                                # 处理推理内容
-                                if 'model_extra' in delta and 'reasoning_content' in delta['model_extra']:
-                                    reasoning_chunk = delta['model_extra']['reasoning_content']
-                                    yield '', reasoning_chunk
-                                
-                                # 当开始接收最终答案时，标记推理完成
-                                if 'content' in delta and delta['content'] and not reasoning_finished:
-                                    reasoning_finished = True
-                                    yield '', ''
-                                
-                                # 流式输出最终答案
-                                if 'content' in delta and delta['content']:
-                                    yield delta['content'], ''
-                        except json.JSONDecodeError:
-                            continue
-            return
+            return self._stream_request(headers, data)
         else:
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers=headers,
                 json=data
             )
-            
+            # Immediately raise an exception for bad status codes (4xx or 5xx)
+            response.raise_for_status()
+
             result = response.json()
             content = result['choices'][0]['message']['content']
             reasoning = result['choices'][0]['message'].get('reasoning_content', '')

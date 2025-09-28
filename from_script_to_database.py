@@ -29,6 +29,9 @@ def parse_and_insert_script(filepath, author, creation_year):
         return
 
     db = Database(DB_CONFIG)
+    
+    # Ensure the table exists before trying to insert data.
+    db.create_scripts_table()
 
     for i, episode_content in enumerate(episode_contents, 1):
         episode_title = f"{base_title} - Episode {i}"

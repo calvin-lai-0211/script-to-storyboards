@@ -16,7 +16,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-from config import RUNNINGHUB_API_CONFIG
+from utils.config import RUNNINGHUB_API_CONFIG
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
