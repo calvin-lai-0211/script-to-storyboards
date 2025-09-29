@@ -84,16 +84,17 @@ Here is the script content for the episode:
 ---
 
 # TASK
-Based on the script provided, create a detailed and vivid image generation prompt for the character: "{character_name}".
+基于提供的剧本，为角色"{character_name}"创建一个详细生动的图像生成提示词。
 
 # INSTRUCTIONS
-1.  **Analyze the Character**: Read the script carefully to understand the character's personality, social status, age, gender, typical clothing, and emotional state.
-2.  **Be Specific**: The prompt must be highly detailed. Mention specific visual elements.
-3.  **Format**: The output should be a single block of text, ready to be used as a prompt for an advanced AI image generator like Qwen Image or Midjourney. Do not include any extra text, explanations, or labels.
-4.  **Style**: The prompt should aim for a photorealistic, cinematic style. Mention camera angles, lighting, and composition.
+1.  **分析角色**: 仔细阅读剧本，理解角色的性格、社会地位、年龄、性别、典型服装和情感状态。
+2.  **具体描述**: 提示词必须高度详细。提及具体的视觉元素。
+3.  **格式要求**: 输出应该是单一文本块，可直接用作高级AI图像生成器（如Qwen Image或Midjourney）的提示词。不要包含任何额外文字、解释或标签。
+4.  **风格要求**: 提示词应追求写实、电影感的风格。提及摄影角度、光照和构图。
+5.  **重要限制**: 画面中只能出现一个人物，即角色本身。必须是上半身肖像（upper body portrait），表情自然正常。
 
 # EXAMPLE PROMPT (for a different character)
-"cinematic full-body portrait of a gritty, middle-aged male detective in his cluttered, dimly lit office at night. He has tired eyes, a wrinkled brow, and a five-o'clock shadow. He's wearing a rumpled trench coat over a stained white shirt and loosened tie. The office is filled with stacks of case files, an overflowing ashtray, and a bottle of whiskey on the desk. The only light source is a single desk lamp, casting long, dramatic shadows. Moody, film noir aesthetic, photorealistic, 8K, sharp focus."
+"cinematic upper body portrait of a sophisticated middle-aged businesswoman in a modern office setting. She has confident eyes, well-groomed appearance, and is wearing a tailored navy blue blazer over a crisp white blouse. Her hair is styled professionally, and she has subtle makeup. The background shows a blurred modern office environment with soft natural lighting from a window. Professional, clean aesthetic, photorealistic, 8K, sharp focus, neutral expression."
 
-Now, generate the prompt for the character "{character_name}".
+现在，为角色"{character_name}"生成提示词。
 """

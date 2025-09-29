@@ -9,7 +9,7 @@ import requests
 import json
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any, Union, List
+from typing import Optional, Dict, Any, Union, List, Callable
 from PIL import Image
 import logging
 from pathlib import Path
@@ -155,9 +155,11 @@ class QwenImageT2IRH:
         self.host = RUNNINGHUB_API_CONFIG["host"]
         self.base_url = RUNNINGHUB_API_CONFIG["base_url"]
         self.run_url = RUNNINGHUB_API_CONFIG["run_url"]
-        self.status_url = RUNNINGHUB_API_CONFIG["status_url"]
-        self.outputs_url = RUNNINGHUB_API_CONFIG["outputs_url"]
-        self.webapp_id = "1955451864637587458"
+        # 尝试使用不同的状态查询端点，因为当前端点返回404
+        self.status_url = "https://www.runninghub.cn/task/openapi/status"
+        # 同样尝试使用不同的输出查询端点
+        self.outputs_url = "https://www.runninghub.cn/task/openapi/outputs"
+        self.webapp_id = "1955451864637587458"  # 保持与curl命令一致
         self.output_node_id = "9" # Assuming same as flux
         self.poll_interval = RUNNINGHUB_API_CONFIG["poll_interval"]
         
@@ -168,13 +170,14 @@ class QwenImageT2IRH:
         
         logger.info(f"QwenImageT2IRH 初始化完成，使用WebApp ID: {self.webapp_id}")
 
-    def generate_image(self, 
+    def generate_image(self,
                        prompt: str,
                        width: int = 720,
                        height: int = 1280,
                        seed: Optional[int] = None,
                        timeout: Optional[int] = None,
-                       use_concurrency_control: bool = True) -> Optional[Dict[str, Any]]:
+                       use_concurrency_control: bool = True,
+                       on_start_callback: Optional[Callable[[], None]] = None) -> Optional[Dict[str, Any]]:
         """
         执行文本转图片生成
         
@@ -185,17 +188,23 @@ class QwenImageT2IRH:
             seed: 随机种子, 如果为None则随机生成
             timeout: 超时时间（秒），如果为None则使用默认值
             use_concurrency_control: 是否使用并发控制，默认为True
+            on_start_callback: 任务成功获取并发许可后执行的回调函数
             
         Returns:
             生成结果字典，包含图片URL等信息，失败返回None
         """
+        slot_acquired = False
         try:
             if use_concurrency_control:
                 while not _concurrency_manager.try_submit_task():
                     status = _concurrency_manager.get_status()
                     logger.info(f"⏳ 并发控制：已提交 {status['submitted']}，运行中 {status['running']}，排队中 {status['queued']}，等待任务完成...")
                     time.sleep(2)
+                slot_acquired = True
             
+            if on_start_callback:
+                on_start_callback()
+
             if seed is None:
                 seed = random.randint(0, 2**32 - 1)
 
@@ -238,98 +247,151 @@ class QwenImageT2IRH:
                 ]
             }
             
-            logger.info("=== RunningHub T2I生成请求数据格式 ===")
-            logger.info(f"URL: {self.run_url}")
-            logger.info(f"Headers: {self.headers}")
-            logger.info(f"Payload: {json.dumps(request_data, indent=2, ensure_ascii=False)}")
-            logger.info("=" * 50)
-            
-            response = requests.post(
-                url=self.run_url, 
-                headers=self.headers, 
-                data=json.dumps(request_data)
-            )
-            response.raise_for_status()
-            result = response.json()
-            
-            logger.info("=== 任务提交结果 ===")
-            logger.info(f"响应: {result}")
-            
-            if result.get('code') == 0:
-                task_data = result["data"]
-                task_id = task_data["taskId"]
-                logger.info(f"✅ 任务提交成功! 任务ID: {task_id}")
-                
-                try:
-                    result = self._poll_task_status(task_id, timeout or RUNNINGHUB_API_CONFIG["generate_timeout"], use_concurrency_control)
-                    if result:
-                        if use_concurrency_control:
-                            _concurrency_manager.task_finished()
-                        return result
-                    else:
-                        if use_concurrency_control:
-                            _concurrency_manager.task_finished()
-                        return None
-                except Exception as e:
-                    if use_concurrency_control:
-                        _concurrency_manager.task_finished()
-                    raise e
-            else:
-                error_msg = result.get('msg', '未知错误')
-                logger.error(f"❌ 任务提交失败: {error_msg}")
-                if use_concurrency_control:
-                    _concurrency_manager.task_finished()
-                return None
-                
-        except Exception as e:
-            logger.error(f"图片生成失败: {e}")
-            if use_concurrency_control:
-                _concurrency_manager.task_finished()
-            return None
-    
-    def _poll_task_status(self, task_id: str, timeout: int, use_concurrency_control: bool = True) -> Optional[Dict[str, Any]]:
-        start_time = time.time()
-        while True:
-            if (time.time() - start_time) > timeout:
-                logger.error(f"{timeout}秒任务超时，已退出轮询")
-                return None
-            
-            try:
-                status_data = {
-                    "apiKey": self.api_key,
-                    "taskId": task_id
-                }
-                
+            # --- Submission loop with exponential backoff and jitter ---
+            submission_result = None
+            max_submission_retries = 3
+            base_retry_delay = 5
+
+            for attempt in range(max_submission_retries):
                 response = requests.post(
-                    url=self.status_url, 
+                    url=self.run_url, 
                     headers=self.headers, 
-                    data=json.dumps(status_data)
+                    data=json.dumps(request_data)
                 )
                 response.raise_for_status()
-                status_result = response.json()
+                submission_result = response.json()
                 
-                logger.info(f"🔄 任务状态查询 (任务ID: {task_id}): {status_result}")
+                logger.info(f"=== 任务提交尝试 {attempt + 1}/{max_submission_retries} 结果 ===")
+                logger.info(f"响应: {submission_result}")
                 
-                if status_result.get('code') != 0:
-                    logger.error(f"❌ 任务状态查询失败: {status_result.get('msg', '未知错误')}")
+                if submission_result.get('code') == 0:
+                    break  # Success
+                
+                error_msg = submission_result.get('msg', '未知错误')
+                if 'TASK_QUEUE_MAXED' in error_msg and attempt < max_submission_retries - 1:
+                    retry_delay = base_retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"⚠️ 任务队列已满 (TASK_QUEUE_MAXED)。将在 {retry_delay:.2f} 秒后重试...")
+                    time.sleep(retry_delay)
+                else:
+                    logger.error(f"❌ 任务提交失败: {error_msg}")
                     return None
-                
-                task_status_data = status_result.get('data', {})
-                task_status = task_status_data.get('taskStatus')
+            
+            if not submission_result or submission_result.get('code') != 0:
+                logger.error("❌ 任务提交在所有重试后仍然失败。")
+                return None
 
-                if task_status == 'SUCCESS':
-                    logger.info("✅ 任务完成，获取结果...")
-                    return self._get_task_outputs(task_id)
-                elif task_status in ['FAIL', 'CANCEL']:
-                    logger.error(f"❌ 任务失败或被取消: {task_status}")
-                    return None
-                else: # QUEUED, RUNNING
-                    logger.info(f"⏳ 任务状态: {task_status}，等待 {self.poll_interval} 秒...")
-                    time.sleep(self.poll_interval)
+            # --- Polling ---
+            task_data = submission_result["data"]
+            logger.info(f"✅ 任务提交成功!")
+            logger.info(f"完整任务数据: {task_data}")
+            
+            # 验证任务数据结构
+            if not task_data or not isinstance(task_data, dict):
+                logger.error(f"❌ 任务数据结构异常: {task_data}")
+                return None
                 
-            except Exception as e:
-                logger.error(f"查询任务状态失败: {e}")
-                time.sleep(self.poll_interval)
+            if "taskId" not in task_data:
+                logger.error(f"❌ 任务数据中缺少taskId字段: {task_data}")
+                # 检查是否有其他可能的任务ID字段
+                possible_id_fields = ["id", "task_id", "taskid", "Id"]
+                for field in possible_id_fields:
+                    if field in task_data:
+                        logger.info(f"🔍 发现可能的任务ID字段 '{field}': {task_data[field]}")
+                return None
+            
+            task_id = task_data["taskId"]
+            logger.info(f"  任务ID: {task_id}")
+            if "clientId" in task_data:
+                logger.info(f"  客户端ID: {task_data['clientId']}")
+            if "taskStatus" in task_data:
+                logger.info(f"  任务状态: {task_data['taskStatus']}")
+            logger.info("=" * 50)
+            
+            result = self._poll_task_status(task_id, timeout or RUNNINGHUB_API_CONFIG["generate_timeout"])
+            return result
+                
+        except Exception as e:
+            logger.error(f"图片生成过程发生异常: {e}", exc_info=True)
+            return None
+        finally:
+            if slot_acquired:
+                _concurrency_manager.task_finished()
+    
+    def _poll_task_status(self, task_id: str, timeout: int) -> Optional[Dict[str, Any]]:
+        start_time = time.time()
+        max_poll_retries = 3
+        poll_retry_delay = 2
+
+        while True:
+            if (time.time() - start_time) > timeout:
+                logger.error(f"任务 {task_id} 超时 ({timeout}秒)，已退出轮询")
+                return None
+            
+            # --- Start of single polling attempt with retries ---
+            poll_successful = False
+            current_retries = max_poll_retries
+            while current_retries > 0:
+                try:
+                    status_data = {"apiKey": self.api_key, "taskId": task_id}
+                    response = requests.post(
+                        url=self.status_url, 
+                        headers=self.headers, 
+                        data=json.dumps(status_data),
+                        timeout=10 # Short timeout for status checks
+                    )
+                    response.raise_for_status()
+                    status_result = response.json()
+                    
+                    logger.info(f"🔄 任务状态查询 (任务ID: {task_id}): {status_result}")
+
+                    if status_result.get('code') == 0:
+                        # 处理两种可能的响应格式：
+                        # 1. data是字典: {'data': {'taskStatus': 'RUNNING'}}
+                        # 2. data是字符串: {'data': 'RUNNING'}
+                        task_data = status_result.get('data', {})
+                        
+                        if isinstance(task_data, str):
+                            # data直接是状态字符串
+                            task_status = task_data
+                        elif isinstance(task_data, dict):
+                            # data是包含taskStatus的字典
+                            task_status = task_data.get('taskStatus')
+                        else:
+                            # 未知格式
+                            logger.warning(f"⚠️ 未知的任务数据格式: {task_data}")
+                            task_status = None
+
+                        if task_status == 'SUCCESS':
+                            logger.info(f"✅ 任务 {task_id} 完成，获取结果...")
+                            return self._get_task_outputs(task_id) # Final success state
+                        elif task_status in ['FAIL', 'CANCEL']:
+                            logger.error(f"❌ 任务 {task_id} 失败或被取消: {task_status}")
+                            return None # Final fail state
+                        elif task_status in ['QUEUED', 'RUNNING']:
+                            # QUEUED, RUNNING, etc. This poll attempt was successful.
+                            logger.info(f"⏳ 任务 {task_id} 状态: {task_status}，等待下一次轮询...")
+                            poll_successful = True
+                            break # Break the INNER retry loop
+                        else:
+                            logger.warning(f"⚠️ 未知任务状态: {task_status}")
+                            poll_successful = True  # 仍然认为查询成功，继续轮询
+                            break
+                    else:
+                        # API returned a business error, treat as a transient poll failure
+                        error_msg = status_result.get('msg', '未知API错误')
+                        raise Exception(f"API返回业务错误: code={status_result.get('code')}, msg={error_msg}")
+
+                except Exception as e:
+                    current_retries -= 1
+                    logger.warning(f"⚠️ 查询任务状态时遇到问题: {e}。剩余重试次数: {current_retries}")
+                    if current_retries > 0:
+                        time.sleep(poll_retry_delay + random.uniform(0, 1))
+            
+            if not poll_successful:
+                logger.error(f"❌ 任务 {task_id} 状态查询在连续 {max_poll_retries} 次失败后彻底失败。")
+                return None
+
+            time.sleep(self.poll_interval)
     
     def _get_task_outputs(self, task_id: str) -> Optional[Dict[str, Any]]:
         try:
@@ -373,27 +435,35 @@ class QwenImageT2IRH:
             logger.error(f"获取任务输出失败: {e}")
             return None
 
-    def _download_image(self, image_url: str, output_path: str) -> Optional[str]:
-        try:
-            response = requests.get(image_url, timeout=60)
-            response.raise_for_status()
-            
-            with open(output_path, 'wb') as f:
-                f.write(response.content)
-            
-            logger.info(f"图片下载完成: {output_path}")
-            return output_path
-            
-        except Exception as e:
-            logger.error(f"下载图片失败: {e}")
-            return None
+    def _download_image(self, image_url: str, output_path: str, retries: int = 3, delay: int = 5) -> Optional[str]:
+        for attempt in range(retries):
+            try:
+                response = requests.get(image_url, timeout=60)
+                response.raise_for_status()
+                
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+                
+                logger.info(f"图片下载完成: {output_path}")
+                return output_path
+                
+            except requests.exceptions.RequestException as e:
+                logger.error(f"下载图片失败 (尝试 {attempt + 1}/{retries}): {e}")
+                if attempt < retries - 1:
+                    logger.info(f"将在 {delay} 秒后重试...")
+                    time.sleep(delay)
+                else:
+                    logger.error("已达到最大重试次数，下载失败。")
+                    return None
+        return None
 
     def text_to_image(self, 
                       prompt: str,
                       output_path: str,
                       width: int = 720,
                       height: int = 1280,
-                      seed: Optional[int] = None) -> Optional[str]:
+                      seed: Optional[int] = None,
+                      on_start_callback: Optional[Callable[[], None]] = None) -> Optional[str]:
         """
         生成并下载单张图片
         """
@@ -406,7 +476,8 @@ class QwenImageT2IRH:
                 prompt=prompt,
                 width=width,
                 height=height,
-                seed=seed
+                seed=seed,
+                on_start_callback=on_start_callback
             )
             
             if not result or result.get('code') != 0:
