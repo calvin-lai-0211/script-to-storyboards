@@ -15,6 +15,7 @@ class Database:
         self.create_scripts_table()
         self.create_flat_storyboard_table()
         self.create_character_portraits_table()
+        self.create_scene_definitions_table()
 
     def _get_connection(self):
         return psycopg2.connect(**self.db_config)
@@ -201,7 +202,7 @@ class Database:
                 sub_shot_number VARCHAR(255),
                 camera_angle VARCHAR(255),
                 characters TEXT[],
-                scene_context TEXT,
+                scene_context TEXT [],
                 image_prompt TEXT,
                 video_prompt TEXT,
                 dialogue_sound TEXT,
@@ -393,6 +394,105 @@ class Database:
             if conn:
                 conn.close()
         return results
+
+    def create_scene_definitions_table(self):
+        """
+        Creates the scene_definitions table to store generated scene image prompts.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS scene_definitions (
+                id SERIAL PRIMARY KEY,
+                drama_name VARCHAR(255) NOT NULL,
+                episode_number INTEGER NOT NULL,
+                scene_name VARCHAR(255) NOT NULL,
+                image_prompt TEXT,
+                image_url VARCHAR(255),
+                shots_appeared TEXT[],
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(drama_name, episode_number, scene_name)
+            );
+            """)
+            conn.commit()
+            print("Successfully created/ensured the scene_definitions table exists.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error creating scene_definitions table: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
+
+    def get_scenes_for_episode(self, drama_name: str, episode_number: int):
+        """
+        Retrieves a list of unique scene names for a specific episode of a drama.
+        """
+        conn = None
+        scenes = []
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT DISTINCT unnest(scene_context) AS single_scene
+                FROM flat_storyboards
+                WHERE drama_name = %s AND episode_number = %s;
+            """, (drama_name, episode_number))
+            
+            rows = cur.fetchall()
+            scenes = [row[0] for row in rows]
+            print(f"Found scenes for '{drama_name}' Episode {episode_number}: {scenes}")
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error getting scenes for episode: {error}")
+        finally:
+            if conn:
+                conn.close()
+        return scenes
+
+    def get_shots_for_scene_in_episode(self, drama_name: str, episode_number: int, scene_name: str):
+        """
+        Retrieves a list of sub_shot_numbers where a scene appears in a specific episode.
+        """
+        conn = None
+        shots = []
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT sub_shot_number
+                FROM flat_storyboards
+                WHERE drama_name = %s AND episode_number = %s AND %s = ANY(scene_context);
+            """, (drama_name, episode_number, scene_name))
+            rows = cur.fetchall()
+            shots = [row[0] for row in rows]
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error getting shots for scene: {error}")
+        finally:
+            if conn: conn.close()
+        return shots
+
+    def insert_scene_definition(self, drama_name: str, episode_number: int, scene_name: str, image_prompt: str, shots_appeared: list):
+        """
+        Inserts or updates a scene definition record.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO scene_definitions (drama_name, episode_number, scene_name, image_prompt, shots_appeared)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (drama_name, episode_number, scene_name)
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared;
+            """, (drama_name, episode_number, scene_name, image_prompt, shots_appeared))
+            conn.commit()
+            print(f"Successfully inserted/updated definition for '{scene_name}' in '{drama_name}' Ep {episode_number}.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error inserting scene definition: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
 
 
 if __name__ == '__main__':
