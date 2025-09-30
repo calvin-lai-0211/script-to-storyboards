@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="brainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="brushGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffecd2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fcb69f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="32" height="32" rx="6" fill="url(#brainGrad)" opacity="0.9"/>
+
+  <!-- 简化的大脑 -->
+  <path d="M8 12 Q10 8, 16 10 Q22 8, 24 12 Q24 16, 22 20 Q16 22, 10 20 Q8 16, 8 12 Z"
+        fill="white" opacity="0.8"/>
+
+  <!-- 神经网络线条 -->
+  <g stroke="#667eea" stroke-width="1" fill="none" opacity="0.6">
+    <line x1="12" y1="14" x2="20" y2="18"/>
+    <line x1="14" y1="12" x2="18" y2="20"/>
+  </g>
+
+  <!-- 画笔 -->
+  <g transform="translate(22, 22) rotate(45)">
+    <rect x="-0.5" y="-4" width="1" height="5" fill="url(#brushGrad)"/>
+    <ellipse cx="0" cy="2" rx="1" ry="2" fill="#8B4513"/>
+  </g>
+
+  <!-- 创意火花 -->
+  <polygon points="6,6 7,4 8,6 10,5 8,8 7,10 6,8 4,5" fill="white" opacity="0.7"/>
+  <polygon points="26,8 27,7 28,8 29,7 28,9 27,10 26,9 25,7" fill="white" opacity="0.5"/>
+</svg>
