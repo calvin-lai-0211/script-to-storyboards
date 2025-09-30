@@ -342,6 +342,7 @@ class Database:
                 character_name VARCHAR(255) NOT NULL,
                 image_prompt TEXT,
                 reflection TEXT,
+                version VARCHAR(20) DEFAULT '0.1',
                 image_url VARCHAR(255),
                 shots_appeared TEXT[],
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -355,6 +356,9 @@ class Database:
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='character_portraits' AND column_name='reflection') THEN
                         ALTER TABLE character_portraits ADD COLUMN reflection TEXT;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='character_portraits' AND column_name='version') THEN
+                        ALTER TABLE character_portraits ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
                     END IF;
                 END $$;
             """)
@@ -417,7 +421,7 @@ class Database:
                 conn.close()
         return shots_details
 
-    def insert_character_portrait(self, drama_name: str, episode_number: int, character_name: str, image_prompt: str, shots_appeared: list, reflection: str = None):
+    def insert_character_portrait(self, drama_name: str, episode_number: int, character_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
         """
         Inserts or updates a character portrait record.
         """
@@ -426,11 +430,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO character_portraits (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO character_portraits (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, character_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection;
-            """, (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
+            """, (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version))
             conn.commit()
             print(f"Successfully inserted/updated portrait for '{character_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:
@@ -478,6 +482,7 @@ class Database:
                 scene_name VARCHAR(255) NOT NULL,
                 image_prompt TEXT,
                 reflection TEXT,
+                version VARCHAR(20) DEFAULT '0.1',
                 image_url VARCHAR(255),
                 shots_appeared TEXT[],
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -491,6 +496,9 @@ class Database:
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scene_definitions' AND column_name='reflection') THEN
                         ALTER TABLE scene_definitions ADD COLUMN reflection TEXT;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scene_definitions' AND column_name='version') THEN
+                        ALTER TABLE scene_definitions ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
                     END IF;
                 END $$;
             """)
@@ -550,7 +558,7 @@ class Database:
             if conn: conn.close()
         return shots
 
-    def insert_scene_definition(self, drama_name: str, episode_number: int, scene_name: str, image_prompt: str, shots_appeared: list, reflection: str = None):
+    def insert_scene_definition(self, drama_name: str, episode_number: int, scene_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
         """
         Inserts or updates a scene definition record.
         """
@@ -559,11 +567,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO scene_definitions (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO scene_definitions (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, scene_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection;
-            """, (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
+            """, (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version))
             conn.commit()
             print(f"Successfully inserted/updated definition for '{scene_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:
@@ -588,6 +596,7 @@ class Database:
                 prop_name VARCHAR(255) NOT NULL,
                 image_prompt TEXT,
                 reflection TEXT,
+                version VARCHAR(20) DEFAULT '0.1',
                 image_url VARCHAR(255),
                 shots_appeared TEXT[],
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -601,6 +610,9 @@ class Database:
                 BEGIN
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='key_prop_definitions' AND column_name='reflection') THEN
                         ALTER TABLE key_prop_definitions ADD COLUMN reflection TEXT;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='key_prop_definitions' AND column_name='version') THEN
+                        ALTER TABLE key_prop_definitions ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
                     END IF;
                 END $$;
             """)
@@ -667,7 +679,7 @@ class Database:
                 conn.close()
         return shots_details
 
-    def insert_key_prop_definition(self, drama_name: str, episode_number: int, prop_name: str, image_prompt: str, shots_appeared: list, reflection: str = None):
+    def insert_key_prop_definition(self, drama_name: str, episode_number: int, prop_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
         """
         Inserts or updates a key prop definition record.
         """
@@ -676,11 +688,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO key_prop_definitions (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO key_prop_definitions (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, prop_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection;
-            """, (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
+            """, (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version))
             conn.commit()
             print(f"Successfully inserted/updated definition for prop '{prop_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:

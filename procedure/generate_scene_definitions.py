@@ -84,7 +84,8 @@ class SceneDefinitionGenerator:
                         scene_name=scene_name,
                         image_prompt=image_prompt,
                         shots_appeared=shots_appeared,
-                        reflection=reflection
+                        reflection=reflection,
+                        version='0.1'
                     )
                     break # Success, exit retry loop
                 except Exception as e:
