@@ -1,13 +1,14 @@
 import time
 import json
 import re
+import concurrent.futures
 from utils.database import Database
-from utils.config import DB_CONFIG
+from utils.config import DB_CONFIG, MAX_CONCURRENT_THREADS
 from models.yizhan_llm import YiZhanLLM
 
 class CharacterPortraitGenerator:
-    def __init__(self):
-        self.db = Database(DB_CONFIG)
+    def __init__(self, db_connection: Database):
+        self.db = db_connection
         self.llm = YiZhanLLM()
 
     def generate(self, drama_name: str, episode_number: int, force_regen: bool = False):
@@ -31,7 +32,19 @@ class CharacterPortraitGenerator:
             print("No characters found for this episode. Aborting.")
             return
 
-        # 2. Get the script content for the episode
+        # 2. Fetch previous character definitions if not the first episode
+        previous_character_briefs = {}
+        if episode_number > 1:
+            print(f"Fetching character definitions from previous episodes...")
+            previous_episode_numbers = list(range(1, episode_number))
+            previous_character_defs = self.db.get_character_definitions(drama_name, previous_episode_numbers)
+            previous_character_briefs = {
+                item['character_name']: item.get('character_brief', '')
+                for item in previous_character_defs if item.get('character_brief')
+            }
+            print(f"Found previous briefs for: {list(previous_character_briefs.keys())}")
+
+        # 3. Get the script content for the episode
         # get_episodes_by_base_title returns a list of contents, ordered by episode_num
         all_episodes_content = self.db.get_episodes_by_base_title(drama_name)
         if not all_episodes_content or episode_number > len(all_episodes_content):
@@ -39,68 +52,164 @@ class CharacterPortraitGenerator:
             return
         script_content = all_episodes_content[episode_number - 1]
 
-        # 3. Loop through each character to generate and store their portrait prompt
-        for char_name in characters:
-            print(f"\n--- Processing character: {char_name} ---")
+        # 4. Concurrently generate prompts for each character
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_CONCURRENT_THREADS) as executor:
+            # Create a future for each character
+            futures = {
+                executor.submit(
+                    self._generate_for_single_character,
+                    drama_name,
+                    episode_number,
+                    script_content,
+                    char_name,
+                    previous_character_briefs.get(char_name) # Pass previous brief if exists
+                ): char_name for char_name in characters
+            }
             
-            # 4. Get all sub-shot details where the character appears
-            sub_shots_details = self.db.get_sub_shots_for_character(drama_name, episode_number, char_name)
-            if not sub_shots_details:
-                print(f"Could not find any shots for character '{char_name}'. Skipping.")
-                continue
-
-            shots_appeared = [shot['sub_shot_number'] for shot in sub_shots_details]
-            print(f"Character '{char_name}' appears in shots: {shots_appeared}")
-
-            # 5. Build the prompt for the LLM
-            prompt = self._build_prompt(script_content, char_name, sub_shots_details)
-
-            # 6. Call LLM to generate the image prompt
-            max_retries = 3
-            for attempt in range(max_retries):
+            for future in concurrent.futures.as_completed(futures):
+                char_name = futures[future]
                 try:
-                    print(f"Generating image prompt for '{char_name}' (Attempt {attempt + 1})...")
-                    response_tuple = self.llm.chat(
-                        user_message=prompt,
-                        model="gemini-2.5-pro",
-                        stream=False  # We need the full response
-                    )
-                    response_str = response_tuple[0] # Get the content part of the response
-
-                    # Extract JSON from the response
-                    json_match = re.search(r"\{[\s\S]*\}", response_str)
-                    if not json_match:
-                        raise ValueError("No valid JSON object found in the LLM response.")
-                    
-                    json_string = json_match.group(0)
-                    response_json = json.loads(json_string)
-                    image_prompt = response_json.get("prompt")
-                    reflection = response_json.get("reflection")
-
-                    if not image_prompt:
-                        raise ValueError("JSON response does not contain a 'prompt' field.")
-
-                    print(f"Successfully generated and extracted image prompt for '{char_name}'.")
-                    
-                    # 7. Insert the result into the database
-                    self.db.insert_character_portrait(
-                        drama_name=drama_name,
-                        episode_number=episode_number,
-                        character_name=char_name,
-                        image_prompt=image_prompt,
-                        shots_appeared=shots_appeared,
-                        reflection=reflection,
-                        version='0.1'
-                    )
-                    break # Success, exit retry loop
+                    future.result()  # We call result() to raise any exceptions that occurred
                 except Exception as e:
-                    print(f"Attempt {attempt + 1} failed for '{char_name}': {e}")
-                    if attempt + 1 < max_retries:
-                        time.sleep(5)
-                    else:
-                        print(f"All retries failed for '{char_name}'. Skipping.")
+                    print(f"An error occurred while processing character '{char_name}': {e}")
 
         print(f"\n--- Character portrait generation completed for '{drama_name}' Episode {episode_number} ---")
+
+    def _generate_for_single_character(self, drama_name: str, episode_number: int, script_content: str, char_name: str, previous_brief: str = None):
+        """
+        Generates and stores the image prompt for a single character.
+        This method is designed to be called concurrently.
+        """
+        print(f"\n--- Processing character: {char_name} ---")
+        
+        # 4. Get all sub-shot details where the character appears
+        sub_shots_details = self.db.get_sub_shots_for_character(drama_name, episode_number, char_name)
+        if not sub_shots_details:
+            print(f"Could not find any shots for character '{char_name}'. Skipping.")
+            return
+
+        shots_appeared = [shot['sub_shot_number'] for shot in sub_shots_details]
+        print(f"Character '{char_name}' appears in shots: {shots_appeared}")
+
+        # 5. Build the prompt for the LLM
+        prompt = ""
+        if previous_brief:
+            print(f"Found previous brief for '{char_name}'. Using memory-enhanced prompt.")
+            prompt = self._build_prompt_with_memory(script_content, char_name, sub_shots_details, previous_brief)
+        else:
+            prompt = self._build_prompt(script_content, char_name, sub_shots_details)
+
+        # 6. Call LLM to generate the image prompt
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"Generating image prompt for '{char_name}' (Attempt {attempt + 1})...")
+                response_tuple = self.llm.chat(
+                    user_message=prompt,
+                    model="gemini-2.5-pro",
+                    stream=False  # We need the full response
+                )
+                response_str = response_tuple[0] # Get the content part of the response
+
+                # Extract JSON from the response
+                json_match = re.search(r"\{[\s\S]*\}", response_str)
+                if not json_match:
+                    raise ValueError("No valid JSON object found in the LLM response.")
+                
+                json_string = json_match.group(0)
+                response_json = json.loads(json_string)
+                image_prompt = response_json.get("prompt")
+                reflection = response_json.get("reflection")
+                is_key_character = response_json.get("is_key_character")
+                character_brief = response_json.get("character_brief")
+
+                if not image_prompt:
+                    raise ValueError("JSON response does not contain a 'prompt' field.")
+
+                print(f"Successfully generated and extracted image prompt for '{char_name}'.")
+                
+                # 7. Insert the result into the database
+                self.db.insert_character_portrait(
+                    drama_name=drama_name,
+                    episode_number=episode_number,
+                    character_name=char_name,
+                    image_prompt=image_prompt,
+                    shots_appeared=shots_appeared,
+                    reflection=reflection,
+                    version='0.1',
+                    is_key_character=is_key_character,
+                    character_brief=character_brief
+                )
+                return # Success, exit function
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed for '{char_name}': {e}")
+                if attempt + 1 < max_retries:
+                    time.sleep(5)
+                else:
+                    print(f"All retries failed for '{char_name}'. Skipping.")
+                    raise  # Re-raise the exception to be caught by the future
+    
+    def _build_prompt_with_memory(self, script_content: str, character_name: str, sub_shots_details: list, previous_brief: str) -> str:
+        shots_context = "\n".join([
+            f"  - Shot {shot['sub_shot_number']}: "
+            f"Scene: {shot.get('scene_description', 'N/A')}, "
+            f"Action: {shot.get('image_prompt', 'N/A')}, "
+            f"Dialogue/Sound: {shot.get('dialogue_sound', 'N/A')}"
+            for shot in sub_shots_details
+        ])
+
+        return f"""
+# CONTEXT
+You are a senior film director and character designer. Your task is to **update** a character's definition and image prompt based on new scenes from a new episode.
+
+# CHARACTER'S PREVIOUS BRIEF
+This is the existing summary of the character "{character_name}" based on previous episodes:
+---
+{previous_brief}
+---
+
+# SCRIPT CONTENT FOR THE NEW EPISODE
+Here is the script content for the new episode:
+---
+{script_content}
+---
+
+# CHARACTER'S NEW SCENES IN THIS EPISODE
+Here is a summary of all sub-shots where "{character_name}" appears in the **new episode**:
+---
+{shots_context}
+---
+
+# TASK
+Your goal is to **update and enrich** the character's definition. Based on the new scenes, you will create an updated `character_brief` and a corresponding image `prompt`. The final output must be a single JSON object.
+
+# INSTRUCTIONS
+1.  **Analyze New Information**: Read the new script and scenes. How do the character's actions or dialogue in this episode add to or change our understanding of them?
+2.  **Update Character Brief**: **Rewrite** the `character_brief`. It must be a new, single sentence that integrates the old brief with the new information from this episode. This should be a cumulative summary.
+3.  **Determine if Key Character**: A character is "key" if they have a proper name, are crucial to the plot, and are likely to appear again. This status is unlikely to change episode to episode, but confirm it.
+4.  **Aesthetic Enhancement for Key Characters**: For characters identified as **key** and having a **positive or protagonist role**, enhance their appearance. Men should be described as **handsome** and women as **beautiful**. For older female characters, their beauty should be described as timeless and enduring, still evident despite their age.
+5.  **Physicality and Appearance**: The image prompt should reflect the **updated understanding** of the character based on the new episode's context. **Crucially, ensure the prompt still specifies the character's inferred age and Hispanic/Latino ethnicity for consistency.**
+6.  **Condition and Wear (Noble Poverty Theme)**: When updating the character's appearance, continue to adhere to the "Noble Poverty" theme. For **key and positive or protagonist characters**, the visual representation of their clothing must be subtle.
+    - **Wear**: Any aging, fading, or wear from the new episode's context must be described as **'slightly'** or **'subtly'**. The effect should be barely perceptible, not drastic.
+    - **Cleanliness**: Their clothes must **always** be described as **impeccably clean** and well-maintained.
+7.  **Output JSON Format**: Your entire output must be a single, well-formed JSON object with keys: "reflection", "prompt", "is_key_character", and "character_brief".
+8.  **'reflection' Field**: Explain how the new scenes informed your updated description. For example: "In this episode, the character showed a moment of unexpected defiance. I've updated their brief to reflect this inner strength, and the prompt now suggests a more determined gaze."
+9.  **'prompt' Field**: Write the new, updated, detailed image generation prompt. It must still be a waist-up, front-facing, photorealistic portrait of only the single character, and **must begin with the character's ethnicity and age**.
+10. **'is_key_character' Field**: A boolean (`true` or `false`).
+11. **'character_brief' Field**: The new, updated, cumulative one-sentence summary.
+
+# EXAMPLE (for updating a character)
+```json
+{{
+  "reflection": "The character was previously defined by her dignity amidst poverty. In this new episode, she actively sells family heirlooms, showing a more pragmatic and desperate side. My updated brief reflects this struggle between maintaining appearances and surviving. The prompt is updated to show a hint of worry in her otherwise serene expression.",
+  "prompt": "cinematic waist-up front-facing portrait of an elegant Hispanic woman in her late 30s... She has a dignified but subtly worried expression... (rest of the detailed prompt)",
+  "is_key_character": true,
+  "character_brief": "A resilient woman from a fallen noble family, now forced to sell heirlooms, struggling to maintain her dignity amidst increasing desperation."
+}}
+```
+
+Now, generate the updated JSON for the character "{character_name}".
+"""
 
     def _build_prompt(self, script_content: str, character_name: str, sub_shots_details: list) -> str:
         """
@@ -116,39 +225,65 @@ class CharacterPortraitGenerator:
         ])
 
         return f"""
-# 背景
-你是一位资深的电影导演和角色设计师。你的任务是根据剧本和角色在不同场景中的具体行为，为特定角色创建一个详细的图像生成提示词。目标是创造一个能够捕捉角色精髓的、高质量的、权威性的肖像。
+# CONTEXT
+You are a senior film director and character designer. Your task is to create a detailed image generation prompt for a specific character, based on the provided script and their scenes. The goal is to create a definitive, high-quality portrait that captures the character's essence.
 
-# 剧本内容
-这是本集的剧本内容：
+# SCRIPT CONTENT
+Here is the script content for the episode:
 ---
 {script_content}
 ---
 
-# 角色出场场景
-为了清晰和准确的视觉效果，以下是角色“{character_name}”出现的所有子镜头摘要：
+# CHARACTER'S SCENES
+For clarity and a precise visual, here is a summary of all sub-shots where the character "{character_name}" appears:
 ---
 {shots_context}
 ---
 
-# 任务
-根据所提供的剧本和角色的场景，为角色“{character_name}”创建一个详细生动的图像生成提示词。最终输出必须是一个JSON对象。
+# TASK
+Based on the script and scenes, create a detailed, vivid image generation prompt for the character "{character_name}". The final output must be a single JSON object.
 
-# 指令
-1.  **深度分析角色**: 仔细阅读剧本和场景摘要，理解角色的性格、社会地位、年龄、性别和情绪状态。至关重要的是，要分析角色的**背景与当前处境**的对比。例如，一个出身富裕家庭但目前陷入贫困的角色，可能穿着陈旧的衣服，但这些衣服会保持干净且质地优良，显示出其残留的品味和自尊。
-2.  **输出JSON格式**: 你的全部输出必须是一个格式良好的单一JSON对象。不要在JSON结构之外包含任何文字。JSON必须包含两个键："reflection" 和 "prompt"。
-3.  **'reflection'字段**: 在此字段中，写下你的分析和推理。解释你关于角色背景、当前状态的结论，以及这些因素如何影响他们的外貌、衣着和所处环境（例如，“家虽老旧但有一定品味且整洁”）。
-4.  **'prompt'字段**: 在此字段中，写入最终的、详细的图像生成提示词（for 即梦4.0 模型, 用中文提示词）。这个提示词应该是你反思的直接成果。它必须是一个单一的字符串，高度详细，并可直接用于AI图像生成器。
-5.  **提示词内容**: 提示词应追求照片般逼真、电影化的风格。提及摄像机角度、光线、构图和具体的视觉元素。图像必须只包含一个人（角色本人），为上半身肖像，表情自然。
-6.  **关键要求：仅限单人**: 生成的图像必须只包含目标角色“{character_name}”。不要在图像中包含任何其他人物、角色或形象。肖像应为专注于这一个角色的单人照。
+# INSTRUCTIONS
+1.  **Deep Character Analysis**: Read the script and summaries to understand the character's personality, social status, and emotions. From this, you **must infer their specific age** (e.g., 'a man in his late 40s') and **ethnicity (assume Hispanic/Latino for this drama)**.
+2.  **Determine if Key Character**: A character is considered "key" if they meet **all** the following criteria:
+    a. They have a proper, formal name (e.g., "Leonardo", not "Thug A").
+    b. They are crucial for advancing the plot.
+3.  **Character Brief**: Write a concise one-sentence summary of the character's role in the story.
+4.  **Aesthetic Enhancement for Key Characters**: If a character is identified as **key** and has a **positive or protagonist role**, you must enhance their appearance in the prompt. Men should be described as **handsome** and women as **beautiful**. For older female characters, their beauty should be described as timeless and enduring, still clearly visible despite their age. This is a critical instruction.
+5.  **Infer Physicality from Personality**: Based on your character analysis, infer their likely physical build, posture, and typical expression. For example, a timid and anxious character might be described as having a 'slender build and a worried expression,' while a confident leader might have a 'strong posture and a determined gaze.' This inference is critical for creating a believable portrait.
+6.  **Facial Details**: When describing the character's face, focus on permanent features that define their history and personality, such as long-term scars or birthmarks. **Critically, you must ignore temporary conditions** like dirt, stains, black eyes, or bruises from recent events, as the portrait should represent their fundamental appearance, not a transient state.
+7.  **CRITICAL THEME - Noble Poverty**: You must analyze the contrast between the character's potentially noble background and their current state of poverty. This theme is central to the visual representation. When describing clothing, be extremely detailed:
+    - **Style**: Specify the cut and type of garment with refined details. The style should reflect a refined taste and noble heritage:
+      * **For Noble Women**: Victorian-inspired high-collared blouses with pearl buttons, A-line midi dresses with subtle pleating, tailored wool coats with structured shoulders, silk scarves draped elegantly, vintage brooches or simple pearl earrings
+      * **For Noble Men**: Double-breasted wool coats with peaked lapels, crisp white dress shirts with French cuffs, tailored trousers with sharp creases, silk ties in muted colors, pocket watches on chains, leather dress shoes (even if worn)
+      * **General Elements**: Classic cuts that never go out of style, attention to proportions and fit, subtle but quality details like mother-of-pearl buttons, fine stitching, or delicate embroidery
+    - **Color Palette**: Deeply consider the colors that reflect both nobility and current circumstances. **Please choose randomly to avoid repetition**:
+      * **Noble Heritage Colors**: Deep jewel tones (emerald, sapphire, burgundy), classic navy, charcoal grey, ivory, or rich earth tones that suggest quality and refinement，
+      * **Faded Elegance**: These noble colors should appear as muted or softened by time - a once-vibrant burgundy now appears as dusty rose, a deep navy has faded to slate blue, emerald has become sage green
+      * **Timeless Neutrals**: Cream, beige, soft grey, or muted pastels that maintain dignity while showing the passage of time
+      * **Avoid**: Bright, flashy colors or overly saturated hues that would suggest new wealth or poor taste
+    - **Condition & Material**: Describe the clothing as 'old', 'worn', or 'faded', but emphasize that the material is of **high quality** (e.g., fine cotton, aged silk, durable tweed).
+    - **Condition and Wear**: For **key and positive or protagonist characters**, the depiction of clothing is critical for the "Noble Poverty" theme.
+        - **Wear**: Any signs of age, such as being old, worn, or faded, must be described with extreme subtlety. Use modifiers like **'slightly'** or **'subtly'**. The effect should be barely perceptible and not drastic (e.g., 'a subtly faded collar', not 'a heavily faded shirt').
+        - **Cleanliness**: Crucially, their clothes must **always** be described as **impeccably clean** and well-maintained, for example, 'neatly pressed despite its age'. This emphasizes their dignity.
+    8.  **Output JSON Format**: Your entire output must be a single, well-formed JSON object with no external text. It must contain four keys: "reflection", "prompt", "is_key_character", and "character_brief".
+    9.  **'reflection' Field**: Write down your analysis here. Explain your conclusions about the character's background versus their current situation and how this duality should influence their appearance and clothing. 
+    For example: "Despite their poverty, their noble origins mean they maintain their clothes meticulously. The fabric is faded but of high quality."
+10. **'prompt' Field**: Write the final, detailed image generation prompt here (for the Jimeng 4.0 model, in English). This prompt must be a direct result of your reflection. It must be a single, highly-detailed string.
+11. **'is_key_character' Field**: A boolean value (`true` or `false`).
+12. **'character_brief' Field**: A string containing the one-sentence summary.
+13. **Prompt Content**: The prompt must describe a **waist-up, front-facing portrait**. It **must begin with the character's inferred ethnicity and age** (e.g., "A Hispanic man in his 40s..."). It should aim for a photorealistic, cinematic style. Mention lighting and composition. The character should have a natural expression.
+14. **CRITICAL: Single Character Only**: The generated image must contain ONLY the target character "{character_name}". No other people or figures.
 
-# 示例 (针对不同角色)
+# EXAMPLE (for a different character)
 ```json
 {{
-  "reflection": "该角色是一位失势的前高级官员。他住在一间简朴的老旧公寓里，但自尊心仍在。尽管装饰过时，但布置得很有品味且一尘不染。他的衣服虽然陈旧，但剪裁精良且保养得很好，这表明他很珍视自己过去的地位。他的表情应该疲惫但有尊严，而不是被打败的样子。",
-  "prompt": "电影感的上半身肖像，一位有尊严的中年男子身处一间光线昏暗、整洁但老旧的公寓里。他眼神疲惫但充满自豪，尽管环境简陋，外表依旧整洁。他穿着一件略显磨损但质地优良的粗花呢夹克。背景中可瞥见一个干净有序的房间和复古家具。柔和而忧郁的窗光照亮了他的一侧脸庞。照片般逼真，8K，焦点清晰，情感复杂。"
+  "reflection": "The character is a descendant of a noble family that has fallen on hard times. She lives in a modest home, but her dignity is intact. Her dress is old and faded but was clearly expensive and is impeccably clean. This contrast shows her resilience and refusal to let circumstances define her. Her expression should be thoughtful, not sorrowful.",
+  "prompt": "cinematic waist-up front-facing portrait of an elegant Hispanic woman in her late 30s, from a noble but impoverished family. She has a dignified and serene expression, looking directly at the camera. She wears a high-collared dress made of a fine, high-quality cotton; the color is faded from many washes but the fabric is impeccably clean and neatly pressed with minimal wrinkles. The garment's style is classic and timeless, showing signs of being well-cared-for despite its age. The setting is a humble but tidy room, with soft, natural light. Photorealistic, 8K, sharp focus, understated elegance.",
+  "is_key_character": true,
+  "character_brief": "A resilient woman from a fallen noble family, struggling to maintain her dignity amidst poverty."
 }}
 ```
 
-现在，为角色“{character_name}”生成JSON。
+Now, generate the JSON for the character "{character_name}".
 """

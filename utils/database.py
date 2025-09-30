@@ -17,6 +17,7 @@ class Database:
         self.create_character_portraits_table()
         self.create_scene_definitions_table()
         self.create_key_prop_definitions_table()
+        self.create_episode_memory_table()
 
     def _get_connection(self):
         return psycopg2.connect(**self.db_config)
@@ -175,6 +176,36 @@ class Database:
                 conn.close()
         
         return episodes
+
+    def get_episode_script(self, base_title: str, episode_number: int):
+        """ Retrieve the script content for a specific episode. """
+        if not base_title or episode_number is None:
+            print("Please provide a base title and episode number.")
+            return None
+
+        conn = None
+        script_content = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            
+            query = "SELECT content FROM scripts WHERE title LIKE %s AND episode_num = %s;"
+            
+            cur.execute(query, (f"{base_title}%", episode_number))
+            
+            row = cur.fetchone()
+            if row:
+                script_content = row[0]
+            else:
+                print(f"No script found for base title: {base_title}, episode: {episode_number}")
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            if conn is not None:
+                conn.close()
+        
+        return script_content
 
     def get_episode_numbers_for_drama(self, drama_name: str):
         """
@@ -360,6 +391,12 @@ class Database:
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='character_portraits' AND column_name='version') THEN
                         ALTER TABLE character_portraits ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
                     END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='character_portraits' AND column_name='is_key_character') THEN
+                        ALTER TABLE character_portraits ADD COLUMN is_key_character BOOLEAN;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='character_portraits' AND column_name='character_brief') THEN
+                        ALTER TABLE character_portraits ADD COLUMN character_brief TEXT;
+                    END IF;
                 END $$;
             """)
             conn.commit()
@@ -421,7 +458,7 @@ class Database:
                 conn.close()
         return shots_details
 
-    def insert_character_portrait(self, drama_name: str, episode_number: int, character_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
+    def insert_character_portrait(self, drama_name: str, episode_number: int, character_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1', is_key_character: bool = None, character_brief: str = None):
         """
         Inserts or updates a character portrait record.
         """
@@ -430,11 +467,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO character_portraits (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO character_portraits (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version, is_key_character, character_brief)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, character_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
-            """, (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version, is_key_character = EXCLUDED.is_key_character, character_brief = EXCLUDED.character_brief;
+            """, (drama_name, episode_number, character_name, image_prompt, shots_appeared, reflection, version, is_key_character, character_brief))
             conn.commit()
             print(f"Successfully inserted/updated portrait for '{character_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:
@@ -500,6 +537,12 @@ class Database:
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scene_definitions' AND column_name='version') THEN
                         ALTER TABLE scene_definitions ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
                     END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scene_definitions' AND column_name='is_key_scene') THEN
+                        ALTER TABLE scene_definitions ADD COLUMN is_key_scene BOOLEAN;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='scene_definitions' AND column_name='scene_brief') THEN
+                        ALTER TABLE scene_definitions ADD COLUMN scene_brief TEXT;
+                    END IF;
                 END $$;
             """)
             conn.commit()
@@ -558,7 +601,7 @@ class Database:
             if conn: conn.close()
         return shots
 
-    def insert_scene_definition(self, drama_name: str, episode_number: int, scene_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
+    def insert_scene_definition(self, drama_name: str, episode_number: int, scene_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1', is_key_scene: bool = None, scene_brief: str = None):
         """
         Inserts or updates a scene definition record.
         """
@@ -567,11 +610,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO scene_definitions (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO scene_definitions (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version, is_key_scene, scene_brief)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, scene_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
-            """, (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version, is_key_scene = EXCLUDED.is_key_scene, scene_brief = EXCLUDED.scene_brief;
+            """, (drama_name, episode_number, scene_name, image_prompt, shots_appeared, reflection, version, is_key_scene, scene_brief))
             conn.commit()
             print(f"Successfully inserted/updated definition for '{scene_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:
@@ -613,6 +656,12 @@ class Database:
                     END IF;
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='key_prop_definitions' AND column_name='version') THEN
                         ALTER TABLE key_prop_definitions ADD COLUMN version VARCHAR(20) DEFAULT '0.1';
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='key_prop_definitions' AND column_name='is_key_prop') THEN
+                        ALTER TABLE key_prop_definitions ADD COLUMN is_key_prop BOOLEAN;
+                    END IF;
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='key_prop_definitions' AND column_name='prop_brief') THEN
+                        ALTER TABLE key_prop_definitions ADD COLUMN prop_brief TEXT;
                     END IF;
                 END $$;
             """)
@@ -679,7 +728,7 @@ class Database:
                 conn.close()
         return shots_details
 
-    def insert_key_prop_definition(self, drama_name: str, episode_number: int, prop_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1'):
+    def insert_key_prop_definition(self, drama_name: str, episode_number: int, prop_name: str, image_prompt: str, shots_appeared: list, reflection: str = None, version: str = '0.1', is_key_prop: bool = None, prop_brief: str = None):
         """
         Inserts or updates a key prop definition record.
         """
@@ -688,11 +737,11 @@ class Database:
             conn = self._get_connection()
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO key_prop_definitions (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO key_prop_definitions (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version, is_key_prop, prop_brief)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (drama_name, episode_number, prop_name)
-                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version;
-            """, (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version))
+                DO UPDATE SET image_prompt = EXCLUDED.image_prompt, shots_appeared = EXCLUDED.shots_appeared, reflection = EXCLUDED.reflection, version = EXCLUDED.version, is_key_prop = EXCLUDED.is_key_prop, prop_brief = EXCLUDED.prop_brief;
+            """, (drama_name, episode_number, prop_name, image_prompt, shots_appeared, reflection, version, is_key_prop, prop_brief))
             conn.commit()
             print(f"Successfully inserted/updated definition for prop '{prop_name}' in '{drama_name}' Ep {episode_number}.")
         except (Exception, psycopg2.DatabaseError) as error:
@@ -700,6 +749,136 @@ class Database:
             if conn: conn.rollback()
         finally:
             if conn: conn.close()
+
+    def create_episode_memory_table(self):
+        """
+        Creates the episode_memory table to store episode summaries.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS episode_memory (
+                id SERIAL PRIMARY KEY,
+                script_name VARCHAR(255) NOT NULL,
+                episode_number INTEGER NOT NULL,
+                plot_summary TEXT,
+                options JSONB,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(script_name, episode_number)
+            );
+            """)
+            conn.commit()
+            print("Successfully created/ensured the episode_memory table exists.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error creating episode_memory table: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
+
+    def insert_episode_memory(self, script_name: str, episode_number: int, plot_summary: str, options: dict = None):
+        """
+        Inserts or updates an episode memory record.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            # Convert options dict to JSON string if it's not None
+            options_json = json.dumps(options) if options is not None else None
+            cur.execute("""
+                INSERT INTO episode_memory (script_name, episode_number, plot_summary, options)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (script_name, episode_number)
+                DO UPDATE SET plot_summary = EXCLUDED.plot_summary, options = EXCLUDED.options;
+            """, (script_name, episode_number, plot_summary, options_json))
+            conn.commit()
+            print(f"Successfully inserted/updated memory for '{script_name}' Ep {episode_number}.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error inserting episode memory: {error}")
+            if conn: conn.rollback()
+        finally:
+            if conn: conn.close()
+
+    def get_episode_memories(self, drama_name: str, episode_numbers: list):
+        """
+        Retrieves plot summaries for a list of episode numbers for a given drama.
+        """
+        if not episode_numbers:
+            return []
+        
+        query = """
+            SELECT episode_number, plot_summary FROM episode_memory
+            WHERE script_name = %s AND episode_number = ANY(%s)
+            ORDER BY episode_number;
+        """
+        # Note: script_name in episode_memory corresponds to drama_name
+        return self.fetch_query(query, (drama_name, episode_numbers))
+
+    def get_character_definitions(self, drama_name: str, episode_numbers: list):
+        """
+        Retrieves character definitions (name and brief) for a list of episode numbers.
+        It fetches the most recent version of each character's definition based on episode number.
+        """
+        if not episode_numbers:
+            return []
+            
+        query = """
+            SELECT DISTINCT ON (character_name) character_name, character_brief, image_prompt, reflection
+            FROM character_portraits
+            WHERE drama_name = %s AND episode_number = ANY(%s) AND character_brief IS NOT NULL
+            ORDER BY character_name, episode_number DESC;
+        """
+        return self.fetch_query(query, (drama_name, episode_numbers))
+
+    def get_scene_definitions(self, drama_name: str, episode_numbers: list):
+        """
+        Retrieves scene definitions (name and brief) for a list of episode numbers.
+        It fetches the most recent version of each scene's definition based on episode number.
+        """
+        if not episode_numbers:
+            return []
+
+        query = """
+            SELECT DISTINCT ON (scene_name) scene_name, scene_brief, image_prompt, reflection
+            FROM scene_definitions
+            WHERE drama_name = %s AND episode_number = ANY(%s) AND scene_brief IS NOT NULL
+            ORDER BY scene_name, episode_number DESC;
+        """
+        return self.fetch_query(query, (drama_name, episode_numbers))
+
+    def get_key_prop_definitions(self, drama_name: str, episode_numbers: list):
+        """
+        Retrieves key prop definitions (name and brief) for a list of episode numbers.
+        It fetches the most recent version of each prop's definition based on episode number.
+        """
+        if not episode_numbers:
+            return []
+
+        query = """
+            SELECT DISTINCT ON (prop_name) prop_name, prop_brief, image_prompt, reflection
+            FROM key_prop_definitions
+            WHERE drama_name = %s AND episode_number = ANY(%s) AND prop_brief IS NOT NULL
+            ORDER BY prop_name, episode_number DESC;
+        """
+        return self.fetch_query(query, (drama_name, episode_numbers))
+
+    def check_script_exists_by_base_title(self, base_title: str) -> bool:
+        """Checks if any script with the given base title exists."""
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            query = "SELECT 1 FROM scripts WHERE title LIKE %s LIMIT 1;"
+            cur.execute(query, (f"{base_title}%",))
+            return cur.fetchone() is not None
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error checking for script existence: {error}")
+            return False
+        finally:
+            if conn:
+                conn.close()
 
     def check_records_exist(self, table_name: str, drama_name: str, episode_number: int = None) -> bool:
         """

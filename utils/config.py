@@ -40,3 +40,18 @@ RUNNINGHUB_API_CONFIG = {
     "generate_timeout": 300,         # 生成超时时间（秒）
     "poll_interval": 5,              # 轮询间隔（秒）
 }
+
+# Image generation model configuration
+T2I_MODEL_CONFIG = {
+    "jimeng_t2i_rh": {
+        "api_key": "your_jimeng_api_key_here",
+        "base_url": "https://jimeng.dev.metastead.com"
+    },
+     "qwen_image_t2i_rh": {
+        "api_key": "your_qwen_api_key_here",
+        "base_url": "https://qwen-image.dev.metastead.com"
+    }
+}
+
+# Concurrency settings
+MAX_CONCURRENT_THREADS = 5
