@@ -22,6 +22,7 @@
 .
 ├── demo_create_character_portraits.py  # 演示：生成角色肖像Prompt并存入数据库
 ├── demo_create_scene_definitions.py    # 演示：生成场景定义Prompt并存入数据库
+├── demo_create_key_prop_definitions.py # 演示：生成关键道具Prompt并存入数据库
 ├── demo_make_storyboards_from_scripts.py # 演示：从txt剧本文件生成分镜脚本并存入数据库
 ├── from_script_to_database.py          # 工具：将txt格式的剧本导入数据库
 ├── images/                               # 存放生成的图片资源
@@ -30,6 +31,8 @@
 │           ├── Don Delacruz.jpg        # 角色肖像
 │           └── scenes/
 │               └── scene_药店.jpg    # 场景关键帧
+│           └── props/
+│               └── prop_name.jpg     # 关键道具图片
 ├── models/                               # AI模型封装
 │   ├── jimeng_t2i_RH.py                  # Jimeng文生图模型
 │   ├── qwen_image_t2i_RH.py              # Qwen文生图模型
@@ -37,7 +40,9 @@
 ├── procedure/                            # 核心处理流程脚本
 │   ├── generate_character_portraits.py   # 生成角色肖像Prompt
 │   ├── generate_scene_definitions.py     # 生成场景定义Prompt
+│   ├── generate_key_prop_definitions.py  # 生成关键道具Prompt
 │   ├── generate_scene_images.py          # 使用Prompt生成场景图片
+│   ├── generate_key_prop_images.py       # 使用Prompt生成道具图片
 │   ├── make_portraits_from_t2i.py        # 使用Prompt生成角色肖像图片
 │   └── make_storyboards.py               # 从剧本生成分镜脚本
 ├── requirements.txt                      # 项目依赖
@@ -71,7 +76,7 @@
     ```bash
     python utils/database.py
     ```
-    该脚本会自动创建`scripts`, `flat_storyboards`, `character_portraits`, 和 `scene_definitions`等表。
+    该脚本会自动创建`scripts`, `flat_storyboards`, `character_portraits`, `scene_definitions`, 和 `key_prop_definitions`等表。
 
 ## 使用流程
 
@@ -110,7 +115,15 @@ python demo_create_character_portraits.py
 python demo_create_scene_definitions.py
 ```
 
-### 步骤 5: 生成视觉素材（图片）
+### 步骤 5: 生成关键道具的Prompt
+
+运行`demo_create_key_prop_definitions.py`来提取所有关键道具，并为它们生成高质量的图像Prompt，存入`key_prop_definitions`表。
+
+```bash
+python demo_create_key_prop_definitions.py
+```
+
+### 步骤 6: 生成视觉素材（图片）
 
 现在，使用上一步生成的Prompts来实际创建图片。
 
@@ -125,6 +138,12 @@ python demo_create_scene_definitions.py
     python procedure/generate_scene_images.py "剧本名" 集数 -m [jimeng|qwen]
     ```
     *示例: `python procedure/generate_scene_images.py "天归（「西语版」）" 1 -m qwen`*
+
+-   **生成关键道具图片**:
+    ```bash
+    python procedure/generate_key_prop_images.py "剧本名" 集数 -m [jimeng|qwen]
+    ```
+    *示例: `python procedure/generate_key_prop_images.py "天归（「西语版」）" 1 -m jimeng`*
 
 所有生成的图片将保存在`images/剧本名/集数/`目录下。
 

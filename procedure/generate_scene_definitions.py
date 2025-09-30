@@ -1,5 +1,7 @@
 import time
 import argparse
+import json
+import re
 from utils.database import Database
 from utils.config import DB_CONFIG
 from models.yizhan_llm import YiZhanLLM
@@ -9,10 +11,19 @@ class SceneDefinitionGenerator:
         self.db = Database(DB_CONFIG)
         self.llm = YiZhanLLM()
 
-    def generate(self, drama_name: str, episode_number: int):
+    def generate(self, drama_name: str, episode_number: int, force_regen: bool = False):
         """
         Generates scene definition prompts for all scenes in a specific episode.
         """
+        table_name = "scene_definitions"
+        if not force_regen and self.db.check_records_exist(table_name, drama_name, episode_number):
+            print(f"Scene definitions for '{drama_name}' Episode {episode_number} already exist. Skipping.")
+            return
+
+        if force_regen:
+            print(f"Force regeneration enabled. Clearing existing scene definitions for '{drama_name}' Episode {episode_number}...")
+            self.db.clear_records(table_name, drama_name, episode_number)
+
         print(f"--- Starting scene definition generation for '{drama_name}' Episode {episode_number} ---")
         
         # 1. Get all unique scene names for the episode
@@ -44,12 +55,27 @@ class SceneDefinitionGenerator:
             for attempt in range(max_retries):
                 try:
                     print(f"Generating image prompt for '{scene_name}' (Attempt {attempt + 1})...")
-                    image_prompt = self.llm.chat(
+                    response_tuple = self.llm.chat(
                         user_message=prompt,
                         model="gemini-2.5-pro",
                         stream=False
                     )
-                    print(f"Successfully generated image prompt for '{scene_name}'.")
+                    response_str = response_tuple[0] # Get the content part of the response
+
+                    # Extract JSON from the response
+                    json_match = re.search(r"\{[\s\S]*\}", response_str)
+                    if not json_match:
+                        raise ValueError("No valid JSON object found in the LLM response.")
+                    
+                    json_string = json_match.group(0)
+                    response_json = json.loads(json_string)
+                    image_prompt = response_json.get("prompt")
+                    reflection = response_json.get("reflection")
+
+                    if not image_prompt:
+                        raise ValueError("JSON response does not contain a 'prompt' field.")
+
+                    print(f"Successfully generated and extracted image prompt for '{scene_name}'.")
                     
                     # 7. Insert the result into the database
                     self.db.insert_scene_definition(
@@ -57,7 +83,8 @@ class SceneDefinitionGenerator:
                         episode_number=episode_number,
                         scene_name=scene_name,
                         image_prompt=image_prompt,
-                        shots_appeared=shots_appeared
+                        shots_appeared=shots_appeared,
+                        reflection=reflection
                     )
                     break # Success, exit retry loop
                 except Exception as e:
@@ -74,38 +101,44 @@ class SceneDefinitionGenerator:
         Builds the prompt to generate a scene's image prompt.
         """
         return f"""
-# CONTEXT
-You are a visionary film director and production designer. Your task is to create a detailed image generation prompt for a specific scene based on a script. The goal is to create a definitive, high-quality keyframe that captures the atmosphere, lighting, and core emotion of the scene.
+# 背景
+你是一位富有远见的电影导演和美术指导。你的任务是根据剧本，为特定场景创建一个详细的图像生成提示词。目标是生成一个权威性的、高质量的关键帧，以捕捉场景的氛围、光线和核心情感。
 
-# SCRIPT CONTENT
-Here is the script content for the episode:
+# 剧本内容
+以下是该集的剧本内容：
 ---
 {script_content}
 ---
 
-# TASK
-Based on the provided script, create a single, detailed, and vivid image generation prompt for the scene: "{scene_name}".
+# 任务
+根据提供的剧本，为场景“{scene_name}”创建一个单一、详细且生动的图像生成提示词。最终输出必须是一个JSON对象。
 
-# INSTRUCTIONS
-1.  **Analyze the Scene**: Read the script carefully to understand the scene's location, mood, time of day, key actions, and emotional tone.
-2.  **Define Scene Nature**: You MUST clearly identify and specify the exact nature and type of the scene location (e.g., "traditional Chinese pharmacy with wooden medicine cabinets", "modern middle-class family living room", "ancient palace courtyard", "bustling street market", "hospital emergency room"). This is crucial for accurate image generation.
-3.  **Be Specific and Vivid**: The prompt must be highly detailed. Mention specific visual elements, lighting (e.g., 'soft morning light filtering through a window', 'harsh neon glow'), color palette, and camera composition (e.g., 'wide shot', 'low-angle shot').
-4.  **Output Format**: The output must be a single text block, ready to be used directly in an advanced AI image generator (like Qwen Image or Midjourney). Do not include any extra text, explanations, or labels.
-5.  **Artistic Style**: The prompt should aim for a photorealistic, cinematic style. You can reference specific film styles or directors if it helps capture the mood.
-6.  **Key Focus**: The image should represent the entire scene, not just a single character. It should establish the environment and atmosphere.
-7.  **No People and scene only！！**: The scene must not include any people, characters, or human figures. Focus purely on the environment, architecture, objects, and atmosphere.
+# 指令
+1.  **深度分析场景**: 仔细阅读剧本，理解场景的地点、情绪、时间、关键动作和情感基调。思考场景的“历史”与“现状”。例如，一个曾经华丽但现已破败的客厅，应在细节中体现其昔日的辉煌与如今的衰败。
+2.  **输出JSON格式**: 你的全部输出必须是一个格式正确的单一JSON对象，不包含任何外部文本。JSON必须包含“reflection”和“prompt”两个键。
+3.  **'reflection'字段**: 在此字段中，记录你的分析与思考。解释你对场景氛围、光线、关键物品及整体感觉的结论。例如：“这个场景是角色内心的避风港，尽管物质条件陈旧，但处处透露出温馨和主人的巧思，应使用暖色调和柔和的光线来表现。”
+4.  **'prompt'字段**: 在此字段中，根据你的思考编写最终的、详细的图像生成提示词（for 即梦4.0 模型）。这应是一个可直接使用的单一字符串。
+5.  **提示词内容**: 提示词应追求逼真的电影风格。详细描述场景的构图、光线、色彩和关键元素。
+6.  **关键焦点**: 图像应代表整个场景的氛围和环境。
+7.  **无人物，纯场景**: 除非剧本特别指示，否则场景中不应包含任何人物。专注于环境、建筑、物体和氛围。
 
-# EXAMPLE PROMPT (for a different scene)
-"cinematic wide shot of a traditional Chinese herbal medicine shop interior, with rows of dark wooden medicine cabinets lining the walls, filled with labeled drawers containing various herbs. A wooden counter displays brass scales and ceramic jars. Warm amber lighting from hanging lanterns creates a cozy, authentic atmosphere. The color palette features rich browns, deep golds, and muted reds. Empty and devoid of people. Photorealistic, 8K, sharp focus, traditional and atmospheric."
+# 示例 (针对不同场景)
+```json
+{{
+  "reflection": "这是一个侦探在案件陷入僵局时深夜独处的办公室。空间应感觉混乱但有生活气息，反映他内心的挣扎。光线是关键，应是孤独、戏剧性的。混乱中应有秩序，显示出他的专业性。",
+  "prompt": "电影级广角镜头，一个1940年代风格的侦探办公室，时间是深夜。整个房间光线昏暗，只有一盏绿色银行家台灯照亮了凌乱的木制办公桌的一角，桌上散落着案件档案、照片和半满的咖啡杯。月光透过百叶窗的缝隙，在地板上投下条纹光影。空气中似乎有尘埃在光束中浮动。整个场景色调偏冷，充满黑色电影的神秘和孤独感。空无一人。逼真写实，8K，细节丰富。"
+}}
+```
 
-Now, generate the prompt for the scene: "{scene_name}".
+现在，为场景“{scene_name}”生成JSON。
 """
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate scene definitions and store them in the database.")
     parser.add_argument("drama_name", type=str, help="The name of the drama.")
     parser.add_argument("episode_number", type=int, help="The episode number.")
+    parser.add_argument("--force-regen", action="store_true", help="Force regeneration of scene definitions even if they already exist.")
     args = parser.parse_args()
 
     generator = SceneDefinitionGenerator()
-    generator.generate(args.drama_name, args.episode_number)
+    generator.generate(args.drama_name, args.episode_number, args.force_regen)

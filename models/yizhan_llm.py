@@ -266,7 +266,7 @@ class YiZhanLLM:
              user_message: str,
              model: Optional[str] = None,
              stream: bool = True,
-             max_tokens: int = 3500) -> Union[Generator[Tuple[str, str], None, None], Tuple[str, str]]:
+             max_tokens: int = 4096) -> Union[Generator[Tuple[str, str], None, None], Tuple[str, str]]:
         """
         纯文本对话接口
         
@@ -286,14 +286,17 @@ class YiZhanLLM:
         api_key = self._get_api_key(model)
         messages = [{'role': 'user', 'content': user_message}]
         
-        return self._make_request(api_key, model, messages, stream, max_tokens)
+        # 如果是gemini模型，使用更大的max_tokens
+        final_max_tokens = 16000 if 'gemini' in model.lower() else max_tokens
+            
+        return self._make_request(api_key, model, messages, stream, final_max_tokens)
     
     def chat_with_image(self, 
                        user_message: str,
                        image_input: Union[str, Image.Image],
                        model: Optional[str] = None,
                        stream: bool = True,
-                       max_tokens: int = 3500) -> Union[Generator[Tuple[str, str], None, None], Tuple[str, str]]:
+                       max_tokens: int = 4096) -> Union[Generator[Tuple[str, str], None, None], Tuple[str, str]]:
         """
         带图片输入的对话接口
         
@@ -312,6 +315,9 @@ class YiZhanLLM:
             model = YIZHAN_API_CONFIG.get("image_model", "gpt-4o-image-vip")
         
         api_key = self._get_api_key(model)
+        
+        # 如果是gemini模型，使用更大的max_tokens
+        final_max_tokens = 16000 if 'gemini' in model.lower() else max_tokens
         
         # 预处理图片：压缩并添加黑边处理成1024x1024
         base64_image, width, height = preprocess_image_for_llm(image_input, target_size=1024)
@@ -338,14 +344,14 @@ class YiZhanLLM:
             }
         ]
         
-        return self._make_request(api_key, model, messages, stream, max_tokens)
+        return self._make_request(api_key, model, messages, stream, final_max_tokens)
     
     def chat_with_images(self, 
                         user_message: str,
                         image_inputs: List[Union[str, Image.Image]],
                         model: Optional[str] = None,
                         stream: bool = True,
-                        max_tokens: int = 3500,
+                        max_tokens: int = 4096,
                         preserve_original_size: bool = False) -> Union[Generator[Tuple[str, str], None, None], Tuple[str, str]]:
         """
         带多张图片输入的对话接口
@@ -364,8 +370,11 @@ class YiZhanLLM:
         """
         if model is None:
             model = YIZHAN_API_CONFIG.get("image_model", "gpt-4o-image-vip")
-        
+            
         api_key = self._get_api_key(model)
+
+        # 如果是gemini模型，使用更大的max_tokens
+        final_max_tokens = 16000 if 'gemini' in model.lower() else max_tokens
         
         # 构建消息内容列表
         content_list: List[Dict[str, Union[str, Dict[str, str]]]] = [
@@ -404,7 +413,7 @@ class YiZhanLLM:
             }
         ]
         
-        return self._make_request(api_key, model, messages, stream, max_tokens)
+        return self._make_request(api_key, model, messages, stream, final_max_tokens)
     
     def _stream_request(self, headers: dict, data: dict) -> Generator[Tuple[str, str], None, None]:
         """
@@ -486,6 +495,15 @@ class YiZhanLLM:
                 "max_completion_tokens": max_tokens
             }
         }
+        
+        # 不同的模型使用不同的max_tokens参数
+        if 'gemini' in model.lower():
+            data["max_tokens"] = max_tokens
+        else:
+            data["extra_body"] = {
+                "return_reasoning": True,
+                "max_completion_tokens": max_tokens
+            }
         
         if stream:
             return self._stream_request(headers, data)

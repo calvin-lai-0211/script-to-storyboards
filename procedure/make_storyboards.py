@@ -12,10 +12,20 @@ class MakeStoryboardsText:
         # The class will now select the correct key based on the model name.
         self.llm = YiZhanLLM()
 
-    def generate(self, base_script_title):
+    def generate(self, base_script_title: str, force_regen: bool = False):
         """
         Generates a storyboard in JSON format from a script in the database.
         """
+        # Check if storyboard data already exists for this drama
+        table_name = "flat_storyboards"
+        if not force_regen and self.db.check_records_exist(table_name, base_script_title):
+            print(f"Storyboard data for '{base_script_title}' already exists. Skipping generation.")
+            return
+
+        if force_regen:
+            print(f"Force regeneration enabled. Clearing existing storyboard data for '{base_script_title}'...")
+            self.db.clear_records(table_name, base_script_title)
+
         print(f"Fetching episodes for script: '{base_script_title}'")
         episodes_content = self.db.get_episodes_by_base_title(base_script_title)
 
@@ -96,10 +106,12 @@ class MakeStoryboardsText:
 1.  **严格的JSON格式**：最终输出必须是一个格式正确的JSON对象。不要在JSON代码块之外添加任何解释性文字。
 2.  **层级结构**：分镜需要有清晰的层级：`场景 (Scene)` -> `镜头 (Shot)` -> `子镜头 (Sub-shot)`。
 3.  **镜头切换**：每当人物、机位、或核心动作发生变化时，都应切换到新的`镜头 (Shot)`。
-4.  **子镜头定义**：每个`子镜头 (Sub-shot)`代表一个持续3到5秒的、连贯的单一动作。
+4.  **子镜头定义**：每个`子镜头 (Sub-shot)`代表一个持续3到5秒的、连贯的单一动作，因为是短剧，尽可能少人（不多于2人参与）。
 5.  **节奏控制**：牢记这是一部短剧，节奏至关重要。请保持镜头的快速和简洁，迅速带入情节。
+6.  **场景定义**：场景定义需要给出场景的全局名称，场景的描述需要给出场景的位置，场景的氛围，场景的时间，场景的关键动作，场景的情感基调。
+              特别注意： **同一个场景不允许有多个名称，保证场景的一致性**。
+7.  **道具定义**：特别注意： **同一个场景不允许有多个名称，保证场景的一致性**。
 
-# JSON输出规范
 请严格遵循以下JSON结构。字段名和层级关系必须完全一致。
 
 ```json
@@ -111,13 +123,14 @@ class MakeStoryboardsText:
       "shots": [
         {{
           "shot_number": "1.1",
-          "shot_description": "【文字描述】对这个一级镜头的简要描述，例如：主角A进入房间。",
+          "shot_description": "【文字描述】对这个一级镜头的简要描述，例如：主角A进入房间。该描述出现的人物描述，需要和涉及人物字段一致，不允许用简称代词造成歧义，同样在场景描述和道具描述也是。",
           "sub_shots": [
             {{
               "sub_shot_number": "1.1.1",
               "景别/机位": "【例如：中景，过肩镜头，特写】",
               "涉及人物": ["【人物A】", "【人物B】", 注意人物A，人物B全局名称的归一化，不能一个人物出现两个名字，人物没有给出姓名，尽可能给出全面的角色和身份推断],
-              "涉及场景": ["【例如：夜晚的书房】", "【人物A的厨房】","注意场景全局名称的归一化，不能同一个场景出现两个名字，场景没有给出名称，尽可能给出全面的场景的位置和角色关联的地理位置推断"],
+              "涉及场景": ["【例如：夜晚的书房】", "【人物A家的厨房】","注意场景全局名称的归一化，不能同一个场景出现两个名字，场景没有给出名称，尽可能给出全面的场景的位置和角色关联的地理位置推断，地理位置名称必须给人物，时间限定语给全，例如 catherine20年前的家"],
+              "涉及关键道具": ["【例如：神秘的信件】", "【主角的怀表】", "注意关键道具全局名称的归一化，特别是跨场景出现的道具"],
               "布景/人物/动作（生成首帧的prompt）": "【一段详细的文字，用于AI绘画生成该分镜的首帧图像。需要包含景别、人物外貌、表情、动作、布景、光线和整体风格。例如：'中景，一位40多岁的疲惫侦探坐在黑暗办公室凌乱的办公桌前，只有一盏台灯照亮着他，他表情关切地看着一份案件档案，黑色电影风格。'】",
               “wan2.5 生成视频的prompt”：【包括视频动作，音频，镜头，以及音频等等】
               "对白/音效": "【人物对白或关键音效。例如：'主角A：“我找到线索了。” 音效：远处传来警笛声。'】",
