@@ -25,7 +25,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
     <div className="relative group">
       {/* 主容器 - 简化设计 */}
       <div
-        className="relative w-full h-96 lg:h-[605px] rounded-2xl overflow-hidden bg-white/95 backdrop-blur-sm border-2 border-slate-300 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-slate-400"
+        className="relative w-full h-96 lg:h-[700px] rounded-2xl overflow-hidden bg-white/95 backdrop-blur-sm border-2 border-slate-300 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-slate-400"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -110,7 +110,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center space-x-2">
                   <Camera className="w-4 h-4" />
-                  <span className="text-sm font-medium">AI 生成作品</span>
+                  <span className="text-sm font-medium">AI Generated</span>
                 </div>
                 <div className="text-xs opacity-90">
                   {new Date().toLocaleDateString()}

@@ -9,10 +9,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
     {
-      id: 'NanoBanana',
-      name: 'AI Generator',
+      id: 'character',
+      name: 'Character Generator',
       icon: Image,
-      description: 'Create images'
+      description: ''
     },
     {
       id: 'Gallery',
@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         <div className="p-4 border-t border-purple-500/20">
           <div className="flex items-center justify-center space-x-2 text-purple-200/70">
             <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-medium">AI 创作工具</span>
+            <span className="text-xs font-medium">Video Creation</span>
             <Sparkles className="w-4 h-4 text-pink-400" />
           </div>
 

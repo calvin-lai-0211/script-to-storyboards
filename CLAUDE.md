@@ -31,8 +31,11 @@ The project uses PostgreSQL as the central data store with four main tables:
    - `generate_scene_images.py`: Generates scene keyframe images
 
 3. **Utils Layer** (`utils/`):
-   - `database.py`: PostgreSQL operations wrapper with auto-initialization on instantiation
-   - `config.py`: Contains DB credentials, API keys, and model configurations
+   - `database.py`: PostgreSQL operations wrapper
+     - `Database(db_config, auto_init=False)`: Initialize database connection
+     - `auto_init=True`: Creates all tables on initialization (only for setup scripts)
+     - `auto_init=False` (default): Skip table creation for better performance in production/API
+   - `config.py`: Contains DB credentials (with timeouts), API keys, and model configurations
 
 ### Storyboard JSON Structure
 The LLM generates hierarchical storyboards:
@@ -47,7 +50,9 @@ Each sub-shot includes: camera angle (景别/机位), characters (涉及人物),
 ```bash
 python utils/database.py
 ```
-Creates all required tables automatically. The `Database` class auto-initializes schema on instantiation.
+Creates all required tables. Use `Database(DB_CONFIG, auto_init=True)` when setting up the database for the first time.
+
+**Performance Note**: In production/API code, use `Database(DB_CONFIG)` (without `auto_init`) to skip table creation checks and improve performance.
 
 ### Complete Pipeline Workflow
 

@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
-import NanoBanana from './pages/NanoBanana'
+import CharacterViewer from './pages/CharacterViewer'
 import Header from './components/Header'
 import Sidebar from './components/Sidebar'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('NanoBanana')
+  const [currentPage, setCurrentPage] = useState('character')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -22,7 +22,7 @@ function App() {
 
         {/* 统一的页面 Header - 在小屏幕上隐藏 */}
         <div className="hidden lg:block">
-          <Header siteName="AI Artist" />
+          <Header siteName="Video Creation" />
         </div>
 
         <div className="flex flex-1">
@@ -60,7 +60,7 @@ function App() {
 
             <main className="flex-1 relative">
               <Routes>
-                <Route path="/" element={<NanoBanana />} />
+                <Route path="/character/:id" element={<CharacterViewer />} />
               </Routes>
             </main>
           </div>

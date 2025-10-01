@@ -4,13 +4,23 @@ import uuid
 import json
 
 class Database:
-    def __init__(self, db_config):
+    def __init__(self, db_config, auto_init=False):
+        """
+        Initialize Database instance.
+
+        Args:
+            db_config: Database configuration dict
+            auto_init: If True, automatically create tables on initialization.
+                      Default is False for better performance in production.
+        """
         self.db_config = db_config
-        self._initialize_database()
+        if auto_init:
+            self._initialize_database()
 
     def _initialize_database(self):
         """
         Initializes the database by ensuring all necessary tables are created.
+        Only call this when setting up the database for the first time.
         """
         self.create_scripts_table()
         self.create_flat_storyboard_table()
@@ -937,10 +947,9 @@ class Database:
 
 if __name__ == '__main__':
     from utils.config import DB_CONFIG
-    # The Database class now initializes the schema upon instantiation.
-    # Creating an instance is enough to ensure tables are set up.
-    db = Database(DB_CONFIG)
-    print("Database schema initialized upon Database object creation.")
+    # Initialize database with auto_init=True to create all tables
+    db = Database(DB_CONFIG, auto_init=True)
+    print("Database schema initialized successfully.")
 
     # Example usage:
     # new_script_id, new_script_key = db.insert_script(
