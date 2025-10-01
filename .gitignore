@@ -2,3 +2,7 @@
 **/__pycache__
 **/images/*
 node_modules/
+
+# K8s deployment package (temporary build artifacts)
+k8s-package/
+k8s-package.tar.gz

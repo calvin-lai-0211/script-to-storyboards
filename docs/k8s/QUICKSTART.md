@@ -32,21 +32,44 @@ http://localhost/api/health    # API
 
 ## Linux Server (k3s) 快速开始
 
-### 1. Setup Connection
+### 方法 1: 一键远程部署（推荐）
+
+在本地 Mac 上直接部署到远程服务器：
 
 ```bash
-# SSH tunnel (easiest)
+# 一键打包、上传、部署
+./k8s/deploy-to-remote.sh
+```
+
+脚本会自动：
+1. 构建前端和 Docker 镜像
+2. 打包镜像和配置文件
+3. 上传到服务器
+4. 在服务器上导入镜像并部署
+
+**前提条件**：
+- SSH config 已配置好 `calvin` host
+- 服务器上已安装 k3s
+
+---
+
+### 方法 2: 手动部署
+
+#### 1. Setup Connection
+
+```bash
+# SSH tunnel (for kubectl access)
 ssh -L 6443:localhost:6443 calvin -N -f
 ```
 
-### 2. Deploy
+#### 2. Deploy
 
 ```bash
 ./k8s/deploy.sh
 # 当询问 "Deploy Ingress on port 80?" 时，按 Y (默认)
 ```
 
-## 3. Access
+#### 3. Access
 
 ```bash
 # Frontend (通过 80 端口 Ingress)
