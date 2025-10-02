@@ -54,26 +54,97 @@ async def generate_characters(request: GenerateDefinitionsRequest, response: Res
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/characters/{drama_name}/{episode_number}")
-async def get_characters(drama_name: str, episode_number: int, response: Response, db: Database = Depends(get_db)):
+@router.get("/characters/all")
+async def get_all_characters(db: Database = Depends(get_db)):
     """
-    Get all characters for a specific episode.
+    Get all characters from all scripts.
     """
     try:
-        characters = db.get_characters_for_episode(drama_name, episode_number)
-        return ApiResponse.success(data={
-            "drama_name": drama_name,
-            "episode_number": episode_number,
-            "characters": characters,
-            "count": len(characters)
-        })
+        query = """
+            SELECT
+                id,
+                drama_name,
+                episode_number,
+                character_name,
+                image_prompt,
+                reflection,
+                image_url,
+                is_key_character,
+                character_brief
+            FROM character_portraits
+            ORDER BY drama_name, episode_number, is_key_character DESC, character_name
+        """
+        logger.info("Query all characters across all scripts")
+        results = db.fetch_query(query)
+
+        response_data = {
+            "characters": results,
+            "count": len(results)
+        }
+
+        logger.info(f"Found {response_data['count']} characters across all scripts")
+        return ApiResponse.success(data=response_data)
+
+    except Exception as e:
+        logger.error(f"Error getting all characters: {e}")
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.get("/characters/{key}")
+async def get_characters(key: str, db: Database = Depends(get_db)):
+    """
+    Get all characters by script key using JOIN query.
+    """
+    try:
+        # Join query: scripts -> character_portraits by episode_number
+        query = """
+            SELECT
+                s.key,
+                s.title as drama_name,
+                s.episode_num as episode_number,
+                c.id,
+                c.character_name,
+                c.image_prompt,
+                c.reflection,
+                c.image_url,
+                c.is_key_character,
+                c.character_brief
+            FROM scripts s
+            LEFT JOIN character_portraits c ON s.episode_num = c.episode_number
+            WHERE s.key = %s
+            ORDER BY c.is_key_character DESC, c.character_name
+        """
+        logger.info(f"Query characters by key: {key}")
+        results = db.fetch_query(query, (key,))
+
+        if not results:
+            logger.warning(f"Script not found for key: {key}")
+            return ApiResponse.error(code=404, message="未找到该剧本")
+
+        # Extract metadata from first row
+        first_row = results[0]
+        response_data = {
+            "key": first_row['key'],
+            "drama_name": first_row['drama_name'],
+            "episode_number": first_row['episode_number'],
+            "characters": [],
+            "count": 0
+        }
+
+        # Filter out rows where character id is None
+        characters = [r for r in results if r.get('id') is not None]
+        if characters:
+            response_data["characters"] = characters
+            response_data["count"] = len(characters)
+
+        logger.info(f"Found {response_data['count']} characters for episode {response_data['episode_number']}")
+        return ApiResponse.success(data=response_data)
+
     except Exception as e:
         logger.error(f"Error getting characters: {e}")
-        response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/character/{character_id}")
-async def get_character(character_id: int, response: Response, db: Database = Depends(get_db)):
+async def get_character(character_id: int, db: Database = Depends(get_db)):
     """
     Get character details by ID.
     """
@@ -87,8 +158,7 @@ async def get_character(character_id: int, response: Response, db: Database = De
         results = db.fetch_query(query, (character_id,))
 
         if not results:
-            response.status_code = 404
-            return ApiResponse.error(code=404, message="Character not found")
+            return ApiResponse.error(code=404, message="未找到该角色")
 
         character = results[0]
         return ApiResponse.success(data={
@@ -123,8 +193,7 @@ async def update_character_prompt(character_id: int, request: dict, response: Re
         results = db.fetch_query(query_check, (character_id,))
 
         if not results:
-            response.status_code = 404
-            return ApiResponse.error(code=404, message="Character not found")
+            return ApiResponse.error(code=404, message="未找到该角色")
 
         # Update the prompt
         conn = db._get_connection()
@@ -170,8 +239,7 @@ async def generate_character_image(character_id: int, request: GenerateImageRequ
         results = db.fetch_query(query, (character_id,))
 
         if not results:
-            response.status_code = 404
-            return ApiResponse.error(code=404, message="Character not found")
+            return ApiResponse.error(code=404, message="未找到该角色")
 
         character = results[0]
         character_name = character["character_name"]

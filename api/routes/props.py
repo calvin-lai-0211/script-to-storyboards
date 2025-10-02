@@ -28,6 +28,44 @@ def get_db():
     finally:
         pass
 
+@router.get("/props/all")
+async def get_all_props(db: Database = Depends(get_db)):
+    """
+    Get all props from all scripts.
+    """
+    try:
+        query = """
+            SELECT
+                id,
+                drama_name,
+                episode_number,
+                prop_name,
+                image_prompt,
+                reflection,
+                version,
+                image_url,
+                shots_appeared,
+                is_key_prop,
+                prop_brief,
+                created_at
+            FROM key_prop_definitions
+            ORDER BY drama_name, episode_number, prop_name
+        """
+        logger.info("Query all props across all scripts")
+        results = db.fetch_query(query)
+
+        response_data = {
+            "props": results,
+            "count": len(results)
+        }
+
+        logger.info(f"Found {response_data['count']} props across all scripts")
+        return ApiResponse.success(data=response_data)
+
+    except Exception as e:
+        logger.error(f"Error getting all props: {e}")
+        return ApiResponse.error(code=500, message=str(e))
+
 @router.post("/props/generate")
 async def generate_props(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db)):
     """

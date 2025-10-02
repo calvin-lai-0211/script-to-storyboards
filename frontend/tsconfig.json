@@ -14,6 +14,15 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path Aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@api": ["./src/api"],
+      "@api/*": ["./src/api/*"],
+      "@store/*": ["./src/store/*"],
+      "@hooks/*": ["./src/hooks/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

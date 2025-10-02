@@ -53,20 +53,124 @@ async def generate_scenes(request: GenerateDefinitionsRequest, response: Respons
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/scenes/{drama_name}/{episode_number}")
-async def get_scenes(drama_name: str, episode_number: int, response: Response, db: Database = Depends(get_db)):
+@router.get("/scenes/all")
+async def get_all_scenes(db: Database = Depends(get_db)):
     """
-    Get all scenes for a specific episode.
+    Get all scenes from all scripts.
     """
     try:
-        scenes = db.get_scenes_for_episode(drama_name, episode_number)
+        query = """
+            SELECT
+                id,
+                drama_name,
+                episode_number,
+                scene_name,
+                image_prompt,
+                reflection,
+                image_url
+            FROM scene_definitions
+            ORDER BY drama_name, episode_number, scene_name
+        """
+        logger.info("Query all scenes across all scripts")
+        results = db.fetch_query(query)
+
+        response_data = {
+            "scenes": results,
+            "count": len(results)
+        }
+
+        logger.info(f"Found {response_data['count']} scenes across all scripts")
+        return ApiResponse.success(data=response_data)
+
+    except Exception as e:
+        logger.error(f"Error getting all scenes: {e}")
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.get("/scene/{scene_id}")
+async def get_scene(scene_id: int, db: Database = Depends(get_db)):
+    """
+    Get scene details by ID.
+    """
+    try:
+        query = """
+            SELECT id, drama_name, episode_number, scene_name,
+                   image_prompt, reflection, version, image_url,
+                   shots_appeared, is_key_scene, scene_brief, created_at
+            FROM scene_definitions
+            WHERE id = %s
+        """
+        results = db.fetch_query(query, (scene_id,))
+
+        if not results:
+            return ApiResponse.error(code=404, message="未找到该场景")
+
+        scene = results[0]
         return ApiResponse.success(data={
-            "drama_name": drama_name,
-            "episode_number": episode_number,
-            "scenes": scenes,
-            "count": len(scenes)
+            "id": scene["id"],
+            "drama_name": scene["drama_name"],
+            "episode_number": scene["episode_number"],
+            "scene_name": scene["scene_name"],
+            "image_prompt": scene["image_prompt"],
+            "reflection": scene["reflection"],
+            "version": scene["version"],
+            "image_url": scene["image_url"],
+            "shots_appeared": scene["shots_appeared"],
+            "is_key_scene": scene["is_key_scene"],
+            "scene_brief": scene["scene_brief"],
+            "created_at": scene["created_at"].isoformat() if scene["created_at"] else None
         })
     except Exception as e:
+        logger.error(f"Error getting scene: {e}")
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.get("/scenes/{key}")
+async def get_scenes(key: str, db: Database = Depends(get_db)):
+    """
+    Get all scenes by script key using JOIN query.
+    """
+    try:
+        # Join query: scripts -> scene_definitions by episode_number
+        query = """
+            SELECT
+                s.key,
+                s.title as drama_name,
+                s.episode_num as episode_number,
+                sc.id,
+                sc.scene_name,
+                sc.image_prompt,
+                sc.reflection,
+                sc.image_url
+            FROM scripts s
+            LEFT JOIN scene_definitions sc ON s.episode_num = sc.episode_number
+            WHERE s.key = %s
+            ORDER BY sc.scene_name
+        """
+        logger.info(f"Query scenes by key: {key}")
+        results = db.fetch_query(query, (key,))
+
+        if not results:
+            logger.warning(f"Script not found for key: {key}")
+            return ApiResponse.error(code=404, message="未找到该剧本")
+
+        # Extract metadata from first row
+        first_row = results[0]
+        response_data = {
+            "key": first_row['key'],
+            "drama_name": first_row['drama_name'],
+            "episode_number": first_row['episode_number'],
+            "scenes": [],
+            "count": 0
+        }
+
+        # Filter out rows where scene id is None
+        scenes = [r for r in results if r.get('id') is not None]
+        if scenes:
+            response_data["scenes"] = scenes
+            response_data["count"] = len(scenes)
+
+        logger.info(f"Found {response_data['count']} scenes for episode {response_data['episode_number']}")
+        return ApiResponse.success(data=response_data)
+
+    except Exception as e:
         logger.error(f"Error getting scenes: {e}")
-        response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))

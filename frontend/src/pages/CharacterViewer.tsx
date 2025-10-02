@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { User, Sparkles, AlertCircle, Save, Edit, Wand2 } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { User, Sparkles, AlertCircle, Save, Edit, Wand2, ArrowLeft } from 'lucide-react';
 import ImageDisplay from '../components/ImageDisplay';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { API_ENDPOINTS, apiCall } from '@api';
+import { useCharacterStore } from '@store/useCharacterStore';
 
 interface CharacterData {
   character_name: string;
@@ -13,6 +14,8 @@ interface CharacterData {
 
 const CharacterViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { currentCharacter } = useCharacterStore();
   const [characterData, setCharacterData] = useState<CharacterData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,9 +34,9 @@ const CharacterViewer: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiCall(API_ENDPOINTS.getCharacter(characterId));
-      setCharacterData(data);
-      setEditedPrompt(data.image_prompt);
+      const data = await apiCall<any>(API_ENDPOINTS.getCharacter(characterId));
+      setCharacterData(data as CharacterData);
+      setEditedPrompt(data.image_prompt as string);
     } catch (err) {
       console.error('Error fetching character data:', err);
       setError('获取角色数据失败，请检查网络或服务器。');
@@ -75,7 +78,7 @@ const CharacterViewer: React.FC = () => {
 
     setGenerating(true);
     try {
-      const result = await apiCall(API_ENDPOINTS.generateCharacterImage(id), {
+      const result = await apiCall<any>(API_ENDPOINTS.generateCharacterImage(id), {
         method: 'POST',
         body: JSON.stringify({
           image_prompt: promptToUse
@@ -85,7 +88,7 @@ const CharacterViewer: React.FC = () => {
       // Update character data with new image URL and prompt
       setCharacterData({
         ...characterData,
-        image_url: result.image_url,
+        image_url: result.image_url as string,
         image_prompt: promptToUse
       });
       setEditedPrompt(promptToUse);
@@ -101,7 +104,14 @@ const CharacterViewer: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* 简化背景 - 移除可能导致闪烁的层 */}
+      {/* 返回按钮 */}
+      <button
+        onClick={() => navigate('/characters')}
+        className="absolute top-4 left-4 z-10 flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200"
+      >
+        <ArrowLeft className="w-5 h-5 text-slate-700" />
+        <span className="text-slate-700 font-medium">返回列表</span>
+      </button>
 
       <div className="relative flex flex-col items-center justify-start py-8 px-6">
         {/* 页面标题区域 */}
@@ -116,9 +126,14 @@ const CharacterViewer: React.FC = () => {
               </div>
             </div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              {characterData ? characterData.character_name : '加载中...'}
+              {currentCharacter?.character_name || characterData?.character_name || '加载中...'}
             </p>
           </div>
+          {currentCharacter && (
+            <p className="text-sm text-slate-500">
+              {currentCharacter.drama_name} - 第{currentCharacter.episode_number}集
+            </p>
+          )}
         </div>
 
         {/* 主要内容区域 */}

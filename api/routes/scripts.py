@@ -27,23 +27,47 @@ def get_db():
     finally:
         pass
 
-@router.get("/scripts/{script_title}/episodes")
-async def list_episodes(script_title: str, response: Response, db: Database = Depends(get_db)):
+@router.get("/scripts")
+async def get_all_scripts(response: Response, db: Database = Depends(get_db)):
     """
-    List all episodes for a specific script.
+    Get all scripts with metadata (title, episode_num, author, creation_year).
     """
     try:
-        query = "SELECT DISTINCT episode_number FROM scripts WHERE drama_name = %s ORDER BY episode_number"
-        results = db.fetch_query(query, (script_title,))
-
-        episodes = [row["episode_number"] for row in results]
+        query = """
+            SELECT script_id, key, title, episode_num, author, creation_year, score
+            FROM scripts
+            ORDER BY creation_year DESC NULLS LAST, title ASC, episode_num ASC
+        """
+        results = db.fetch_query(query)
 
         return ApiResponse.success(data={
-            "script_title": script_title,
-            "episodes": episodes,
-            "count": len(episodes)
+            "scripts": results,
+            "count": len(results)
         })
     except Exception as e:
-        logger.error(f"Error listing episodes: {e}")
+        logger.error(f"Error getting scripts: {e}")
         response.status_code = 500
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.get("/scripts/{key}")
+async def get_script(key: str, db: Database = Depends(get_db)):
+    """
+    Get script content by key.
+    """
+    try:
+        query = """
+            SELECT script_id, key, title, episode_num, content, roles, sceneries,
+                   author, creation_year, score
+            FROM scripts
+            WHERE key = %s
+        """
+        results = db.fetch_query(query, (key,))
+
+        if not results:
+            return ApiResponse.error(code=404, message="未找到该剧本")
+
+        script = results[0]
+        return ApiResponse.success(data=script)
+    except Exception as e:
+        logger.error(f"Error getting script: {e}")
         return ApiResponse.error(code=500, message=str(e))

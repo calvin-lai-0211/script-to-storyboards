@@ -1,0 +1,312 @@
+import React, { useState, useEffect } from 'react';
+import { Loader2, AlertCircle, ChevronRight, ChevronDown, Film, Camera, Image as ImageIcon } from 'lucide-react';
+import { API_ENDPOINTS, apiCall } from '@api';
+
+interface StoryboardTabProps {
+  scriptKey: string;
+}
+
+interface SubShot {
+  id: number;
+  sub_shot_number: string;
+  camera_angle: string;
+  characters: string[];
+  scene_context: string[];
+  key_props: string[];
+  image_prompt: string;
+  dialogue_sound: string;
+  duration_seconds: number;
+  notes: string;
+}
+
+interface Shot {
+  shot_number: string;
+  shot_description: string;
+  subShots: SubShot[];
+}
+
+interface Scene {
+  scene_number: string;
+  scene_description: string;
+  shots: Shot[];
+}
+
+const StoryboardTab: React.FC<StoryboardTabProps> = ({ scriptKey }) => {
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set());
+  const [expandedShots, setExpandedShots] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    fetchStoryboards(abortController.signal);
+
+    return () => {
+      abortController.abort();
+    };
+  }, [scriptKey]);
+
+  const fetchStoryboards = async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (signal?.aborted) return;
+
+      const data = await apiCall<{ storyboards: Record<string, unknown>[] }>(
+        API_ENDPOINTS.getStoryboards(scriptKey)
+      );
+
+      if (signal?.aborted) return;
+
+      // 将扁平数据转换为层级结构
+      const scenesMap = new Map<string, Scene>();
+
+      data.storyboards.forEach((item: any) => {
+        const sceneKey = item.scene_number as string;
+
+        if (!scenesMap.has(sceneKey)) {
+          scenesMap.set(sceneKey, {
+            scene_number: item.scene_number as string,
+            scene_description: item.scene_description as string,
+            shots: []
+          });
+        }
+
+        const scene = scenesMap.get(sceneKey)!;
+        let shot = scene.shots.find(s => s.shot_number === item.shot_number);
+
+        if (!shot) {
+          shot = {
+            shot_number: item.shot_number as string,
+            shot_description: item.shot_description as string,
+            subShots: []
+          };
+          scene.shots.push(shot);
+        }
+
+        shot.subShots.push({
+          id: item.id as number,
+          sub_shot_number: item.sub_shot_number as string,
+          camera_angle: item.camera_angle as string,
+          characters: (item.characters as string[]) || [],
+          scene_context: (item.scene_context as string[]) || [],
+          key_props: (item.key_props as string[]) || [],
+          image_prompt: item.image_prompt as string,
+          dialogue_sound: item.dialogue_sound as string,
+          duration_seconds: item.duration_seconds as number,
+          notes: item.notes as string
+        });
+      });
+
+      setScenes(Array.from(scenesMap.values()));
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        console.debug('Storyboards fetch cancelled');
+        return;
+      }
+      console.error('Error fetching storyboards:', err);
+      setError('获取分镜数据失败');
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const toggleScene = (sceneNumber: string) => {
+    const newExpanded = new Set(expandedScenes);
+    if (newExpanded.has(sceneNumber)) {
+      newExpanded.delete(sceneNumber);
+    } else {
+      newExpanded.add(sceneNumber);
+    }
+    setExpandedScenes(newExpanded);
+  };
+
+  const toggleShot = (shotKey: string) => {
+    const newExpanded = new Set(expandedShots);
+    if (newExpanded.has(shotKey)) {
+      newExpanded.delete(shotKey);
+    } else {
+      newExpanded.add(shotKey);
+    }
+    setExpandedShots(newExpanded);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">加载分镜数据中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (scenes.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <Film className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500">暂无分镜数据</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-auto p-6">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {scenes.map((scene) => {
+          const sceneExpanded = expandedScenes.has(scene.scene_number);
+
+          return (
+            <div key={scene.scene_number} className="bg-white rounded-xl shadow-sm border-2 border-slate-200 overflow-hidden">
+              {/* 场景标题 */}
+              <button
+                onClick={() => toggleScene(scene.scene_number)}
+                className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  {sceneExpanded ? (
+                    <ChevronDown className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-blue-600" />
+                  )}
+                  <Film className="w-5 h-5 text-blue-600" />
+                  <div className="text-left">
+                    <div className="font-bold text-slate-800">场景 {scene.scene_number}</div>
+                    <div className="text-sm text-slate-600">{scene.scene_description}</div>
+                  </div>
+                </div>
+                <div className="text-sm text-slate-500">{scene.shots.length} 个镜头</div>
+              </button>
+
+              {/* 镜头列表 */}
+              {sceneExpanded && (
+                <div className="border-t border-slate-200">
+                  {scene.shots.map((shot) => {
+                    const shotKey = `${scene.scene_number}-${shot.shot_number}`;
+                    const shotExpanded = expandedShots.has(shotKey);
+
+                    return (
+                      <div key={shotKey} className="border-b border-slate-100 last:border-0">
+                        {/* 镜头标题 */}
+                        <button
+                          onClick={() => toggleShot(shotKey)}
+                          className="w-full px-8 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-center space-x-3">
+                            {shotExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-purple-600" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-purple-600" />
+                            )}
+                            <Camera className="w-4 h-4 text-purple-600" />
+                            <div className="text-left">
+                              <div className="font-medium text-slate-800">镜头 {shot.shot_number}</div>
+                              <div className="text-sm text-slate-600">{shot.shot_description}</div>
+                            </div>
+                          </div>
+                          <div className="text-sm text-slate-500">{shot.subShots.length} 个子镜头</div>
+                        </button>
+
+                        {/* 子镜头列表 */}
+                        {shotExpanded && (
+                          <div className="bg-slate-50 px-12 py-4 space-y-3">
+                            {shot.subShots.map((subShot) => (
+                              <div
+                                key={subShot.id}
+                                className="bg-white rounded-lg border border-slate-200 p-4"
+                              >
+                                <div className="flex items-start space-x-3 mb-3">
+                                  <ImageIcon className="w-4 h-4 text-pink-600 mt-1" />
+                                  <div className="flex-1">
+                                    <div className="font-medium text-slate-800 mb-1">
+                                      子镜头 {subShot.sub_shot_number}
+                                    </div>
+                                    <div className="text-sm text-slate-600 mb-2">
+                                      {subShot.camera_angle}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      {subShot.characters.length > 0 && (
+                                        <div>
+                                          <span className="text-slate-500">角色:</span>{' '}
+                                          <span className="text-slate-700">{subShot.characters.join(', ')}</span>
+                                        </div>
+                                      )}
+                                      {subShot.scene_context.length > 0 && (
+                                        <div>
+                                          <span className="text-slate-500">场景:</span>{' '}
+                                          <span className="text-slate-700">{subShot.scene_context.join(', ')}</span>
+                                        </div>
+                                      )}
+                                      {subShot.key_props.length > 0 && (
+                                        <div className="col-span-2">
+                                          <span className="text-slate-500">道具:</span>{' '}
+                                          <span className="text-slate-700">{subShot.key_props.join(', ')}</span>
+                                        </div>
+                                      )}
+                                      {subShot.duration_seconds && (
+                                        <div>
+                                          <span className="text-slate-500">时长:</span>{' '}
+                                          <span className="text-slate-700">{subShot.duration_seconds}秒</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {subShot.image_prompt && (
+                                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                        <div className="text-xs text-slate-500 mb-1">画面提示词</div>
+                                        <div className="text-sm text-slate-700">{subShot.image_prompt}</div>
+                                      </div>
+                                    )}
+
+                                    {subShot.dialogue_sound && (
+                                      <div className="mt-2 p-3 bg-purple-50 rounded-lg">
+                                        <div className="text-xs text-slate-500 mb-1">对白/音效</div>
+                                        <div className="text-sm text-slate-700">{subShot.dialogue_sound}</div>
+                                      </div>
+                                    )}
+
+                                    {subShot.notes && (
+                                      <div className="mt-2 p-3 bg-amber-50 rounded-lg">
+                                        <div className="text-xs text-slate-500 mb-1">备注</div>
+                                        <div className="text-sm text-slate-700">{subShot.notes}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default StoryboardTab;

@@ -1,5 +1,5 @@
 {
-  "name": "ai-artist",
+  "name": "drama-creator",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,28 +7,41 @@
   "scripts": {
     "dev": "VITE_API_BASE_URL=http://localhost:8001 vite",
     "build": "tsc -b && vite build",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix --report-unused-disable-directives --max-warnings 0",
-    "typecheck": "tsc -b",
+    "type-check": "tsc -b --noEmit",
+    "pretty": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
+    "pretty:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@vitejs/plugin-react": "^5.0.2",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
+    "localforage": "^1.10.0",
     "lucide-react": "^0.544.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.1",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
     "@tailwindcss/vite": "^4.1.13",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^24.6.2",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
+    "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
@@ -38,10 +51,12 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
+    "jsdom": "^26.0.0",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.44.0"
+    "typescript-eslint": "^8.44.0",
+    "vitest": "^3.2.4"
   }
 }
