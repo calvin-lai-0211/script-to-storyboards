@@ -1,13 +1,31 @@
 # Docker Deployment Guide
 
+> 💡 **新功能：Docker Bake 支持**
+> 本项目已支持 Docker Bake，提供更快的并行构建和共享缓存。
+> 详见：[Docker Bake 构建指南](DOCKER-BAKE.md)
+
 This guide explains how to deploy the Script-to-Storyboards application using Docker.
 
 ## Prerequisites
 
 - Docker Engine 20.10+
-- Docker Compose 2.0+
+- Docker Compose 2.0+ (推荐 2.17+ 以使用 Bake)
+- Docker Buildx (Docker Desktop 自带)
 
 ## Quick Start
+
+### 使用 Docker Bake（推荐）
+
+```bash
+# 方法 1: 使用构建脚本
+./build.sh
+
+# 方法 2: 让 Compose 自动使用 Bake
+docker-compose build
+docker-compose up -d
+```
+
+### 传统方式
 
 ### 1. Build Frontend
 

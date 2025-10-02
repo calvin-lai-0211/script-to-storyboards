@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 # Navigate to project root
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # Create package directory
 PACKAGE_DIR="k8s-package"
@@ -21,27 +21,21 @@ rm -rf "$PACKAGE_DIR"
 mkdir -p "$PACKAGE_DIR"
 
 echo -e "${YELLOW}🔨 Building frontend...${NC}"
-cd frontend
 
-# Use K8s-specific env file
-if [ -f ".env.k8s" ]; then
-    echo "Using .env.k8s for K8s deployment..."
-    cp .env.k8s .env
+# Load K8s remote-specific env variables
+if [ -f "frontend/.env.k8s.remote" ]; then
+    echo "Using .env.k8s.remote for remote K8s deployment..."
+    set -a
+    source frontend/.env.k8s.remote
+    set +a
+else
+    echo "Warning: frontend/.env.k8s.remote not found, using default API URL"
 fi
-
-# Build frontend
-if [ ! -d "node_modules" ]; then
-    echo "Installing dependencies..."
-    pnpm install
-fi
-
-pnpm run build
-
-cd ..
 
 echo -e "${YELLOW}🐳 Building Docker images for linux/amd64...${NC}"
-# Build for AMD64 platform (Ubuntu server)
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose build
+# Build for AMD64 platform (Ubuntu server) with K8s remote env
+echo "Building with VITE_API_BASE_URL=${VITE_API_BASE_URL}..."
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose -f docker/compose/docker-compose.yml build
 # Build for ARM64 platform (Apple M1/M2)
 # DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose build
 
@@ -50,11 +44,11 @@ docker save script-to-storyboards-api:latest -o "$PACKAGE_DIR/api-image.tar"
 docker save script-to-storyboards-frontend:latest -o "$PACKAGE_DIR/frontend-image.tar"
 
 echo -e "${YELLOW}📋 Copying K8s manifests...${NC}"
-cp k8s/api-deployment.yaml "$PACKAGE_DIR/"
-cp k8s/frontend-deployment.yaml "$PACKAGE_DIR/"
-cp k8s/ingress.yaml "$PACKAGE_DIR/"
-cp k8s/nginx-configmap.yaml "$PACKAGE_DIR/"
-cp k8s/undeploy.sh "$PACKAGE_DIR/"
+cp docker/k8s/api-deployment.yaml "$PACKAGE_DIR/"
+cp docker/k8s/frontend-deployment.yaml "$PACKAGE_DIR/"
+cp docker/k8s/ingress.yaml "$PACKAGE_DIR/"
+cp docker/k8s/nginx-configmap.yaml "$PACKAGE_DIR/"
+cp docker/k8s/undeploy.sh "$PACKAGE_DIR/"
 
 echo -e "${YELLOW}📝 Creating deployment script...${NC}"
 cat > "$PACKAGE_DIR/deploy.sh" << 'EOF'

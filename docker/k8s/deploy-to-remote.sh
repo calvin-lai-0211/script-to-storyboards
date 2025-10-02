@@ -17,11 +17,11 @@ REMOTE_HOST="44.213.117.91"
 REMOTE_DIR="~/k8s-deploy"
 
 # Navigate to project root
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # Step 1: Package
 echo -e "${YELLOW}📦 Step 1/3: Building and packaging...${NC}"
-./k8s/package.sh
+./docker/k8s/package.sh
 
 if [ ! -d "k8s-package" ]; then
     echo -e "${RED}❌ Package directory not found${NC}"

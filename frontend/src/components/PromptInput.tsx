@@ -49,11 +49,9 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error('图片上传失败');
-    }
-
     const data = await response.json();
+
+    // Check unified response format
     if (data.code === 0 && data.data) {
       return data.data;
     } else {

@@ -2,8 +2,9 @@ services:
   # API Service
   api:
     build:
-      context: .
-      dockerfile: api/Dockerfile
+      context: ../../
+      dockerfile: docker/dockerfiles/api.Dockerfile
+    image: script-to-storyboards-api:latest
     container_name: storyboard-api
     ports:
       - "8000:8000"
@@ -13,10 +14,10 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       # Mount for development (optional - comment out for production)
-      - ./api:/app/api
-      - ./utils:/app/utils
-      - ./models:/app/models
-      - ./procedure:/app/procedure
+      - ../../api:/app/api
+      - ../../utils:/app/utils
+      - ../../models:/app/models
+      - ../../procedure:/app/procedure
     restart: unless-stopped
     networks:
       - storyboard-network
@@ -30,8 +31,11 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ../../frontend
+      dockerfile: ../docker/dockerfiles/frontend.Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL-http://localhost:8000}
+    image: script-to-storyboards-frontend:latest
     container_name: storyboard-frontend
     ports:
       - "8866:80"

@@ -28,37 +28,22 @@ echo -e "${GREEN}✅ Connected to k3s cluster${NC}"
 
 # Build Docker images locally first
 echo -e "${YELLOW}📦 Building Docker images...${NC}"
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
-# Build frontend
-echo "Building frontend..."
-cd frontend
-
-# Use K8s-specific env file
-if [ -f ".env.k8s" ]; then
-    echo "Using .env.k8s for K8s deployment..."
-    cp .env.k8s .env
+# Load K8s-specific env variables
+if [ -f "frontend/.env.k8s.local" ]; then
+    echo "Using .env.k8s.local for local K8s deployment..."
+    # Source the .env.k8s.local file to load environment variables
+    set -a
+    source frontend/.env.k8s.local
+    set +a
+else
+    echo "Warning: frontend/.env.k8s.local not found, using default API URL"
 fi
-
-echo "Building frontend dist for K8s..."
-
-# Clean pnpm cache and reinstall if needed
-if [ ! -d "node_modules" ] || [ ! -f "package-lock.json" ]; then
-    echo "Installing dependencies..."
-    pnpm install
-elif [ ! -d "dist" ]; then
-    echo "Dist directory not found, rebuilding..."
-    rm -rf node_modules package-lock.json
-    pnpm install
-fi
-
-pnpm run build
-
-cd ..
 
 # Build Docker images
-echo "Building Docker images..."
-docker-compose build
+echo "Building Docker images with VITE_API_BASE_URL=${VITE_API_BASE_URL}..."
+docker-compose -f docker/compose/docker-compose.yml build
 
 # Import images to k3s/k3d
 echo -e "${YELLOW}📥 Importing images to cluster...${NC}"
@@ -93,18 +78,21 @@ echo -e "${GREEN}✅ Images imported${NC}"
 # Apply Kubernetes manifests
 echo -e "${YELLOW}📋 Applying Kubernetes manifests...${NC}"
 
+# Delete old deployments first (to avoid selector immutable error)
+# kubectl delete deployment storyboard-api storyboard-frontend --ignore-not-found=true
+
 # Apply ConfigMap first
-kubectl apply -f k8s/nginx-configmap.yaml
+kubectl apply -f docker/k8s/nginx-configmap.yaml
 
 # Apply deployments
-kubectl apply -f k8s/api-deployment.yaml
-kubectl apply -f k8s/frontend-deployment.yaml
+kubectl apply -f docker/k8s/api-deployment.yaml
+kubectl apply -f docker/k8s/frontend-deployment.yaml
 
 # Apply Ingress (default to yes for port 80 access)
 read -p "Do you want to deploy Ingress on port 80? (Y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    kubectl apply -f k8s/ingress.yaml
+    kubectl apply -f docker/k8s/ingress.yaml
     echo -e "${GREEN}✅ Ingress deployed on port 80${NC}"
 fi
 
@@ -153,5 +141,5 @@ echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
 echo ""
 echo "📋 Useful commands:"
 echo "  View logs: kubectl logs -f deployment/storyboard-api"
-echo "  Delete: kubectl delete -f k8s/"
+echo "  Delete: kubectl delete -f docker/k8s/"
 echo "  Restart: kubectl rollout restart deployment/storyboard-api"

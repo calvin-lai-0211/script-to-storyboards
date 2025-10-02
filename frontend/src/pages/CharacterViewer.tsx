@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { User, Sparkles, AlertCircle, Save, Edit } from 'lucide-react';
+import { User, Sparkles, AlertCircle, Save, Edit, Wand2 } from 'lucide-react';
 import ImageDisplay from '../components/ImageDisplay';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 
@@ -19,6 +19,7 @@ const CharacterViewer: React.FC = () => {
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
   const [editedPrompt, setEditedPrompt] = useState<string>('');
   const [saving, setSaving] = useState<boolean>(false);
+  const [generating, setGenerating] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) {
@@ -61,14 +62,46 @@ const CharacterViewer: React.FC = () => {
     }
   };
 
+  const handleGenerateImage = async () => {
+    if (!characterData || !id) return;
+
+    // Use editedPrompt if editing, otherwise use current prompt
+    const promptToUse = isEditingPrompt ? editedPrompt : characterData.image_prompt;
+
+    if (!promptToUse || promptToUse.trim() === '') {
+      alert('请先添加角色描述后再生成图片');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const result = await apiCall(API_ENDPOINTS.generateCharacterImage(id), {
+        method: 'POST',
+        body: JSON.stringify({
+          image_prompt: promptToUse
+        }),
+      });
+
+      // Update character data with new image URL and prompt
+      setCharacterData({
+        ...characterData,
+        image_url: result.image_url,
+        image_prompt: promptToUse
+      });
+      setEditedPrompt(promptToUse);
+      setIsEditingPrompt(false);
+      console.debug('Image generated successfully:', result.image_url);
+    } catch (err) {
+      console.error('Error generating image:', err);
+      alert('生成图片失败，请检查网络或稍后重试。');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* 简化背景 */}
-      <div className="absolute inset-0 bg-gradient-to-t from-white/60 to-transparent"></div>
-
-      {/* 装饰性元素 */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-2xl animate-float"></div>
-      <div className="absolute bottom-20 right-20 w-16 h-16 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-xl animate-float" style={{ animationDelay: '3s' }}></div>
+      {/* 简化背景 - 移除可能导致闪烁的层 */}
 
       <div className="relative flex flex-col items-center justify-start py-8 px-6">
         {/* 页面标题区域 */}
@@ -91,7 +124,7 @@ const CharacterViewer: React.FC = () => {
         {/* 主要内容区域 */}
         <div className="w-full max-w-6xl">
           {error && (
-            <div className="mb-6 p-4 bg-red-50/95 backdrop-blur-sm border border-red-200 rounded-xl shadow-md">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl shadow-md">
               <div className="flex items-center space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                 <div>
@@ -114,20 +147,30 @@ const CharacterViewer: React.FC = () => {
             {/* 右侧: 信息区域 (2列) */}
             <div className="lg:col-span-2 space-y-6">
               {/* 创意描述区域 - 可编辑的 Prompt */}
-              <div className="bg-white/95 backdrop-blur-sm border-2 border-slate-300 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-slate-400 p-6 flex flex-col h-[400px]">
+              <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-lg transition-shadow duration-300 hover:shadow-xl p-6 flex flex-col h-[400px]">
                 <div className="flex items-center justify-between mb-3 flex-shrink-0 h-8">
                   <h3 className="font-display font-bold text-slate-800 text-lg flex items-center">
                     <Sparkles className="w-5 h-5 text-purple-500 mr-2" />
                     角色描述
                   </h3>
                   {!isEditingPrompt ? (
-                    <button
-                      onClick={() => setIsEditingPrompt(true)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200"
-                    >
-                      <Edit className="w-4 h-4" />
-                      <span className="text-sm font-medium">编辑</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={generating}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      >
+                        <Wand2 className="w-4 h-4" />
+                        <span className="text-sm font-medium">{generating ? '生成中...' : '生成图片'}</span>
+                      </button>
+                      <button
+                        onClick={() => setIsEditingPrompt(true)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span className="text-sm font-medium">编辑</span>
+                      </button>
+                    </div>
                   ) : (
                     <div className="flex items-center space-x-2">
                       <button
@@ -159,7 +202,7 @@ const CharacterViewer: React.FC = () => {
                   <textarea
                     value={editedPrompt}
                     onChange={(e) => setEditedPrompt(e.target.value)}
-                    className="flex-1 w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-500 resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                    className="flex-1 w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-500 resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-colors duration-200"
                     placeholder="描述角色的外观、服装、表情等细节..."
                   />
                 ) : (
@@ -172,7 +215,7 @@ const CharacterViewer: React.FC = () => {
               </div>
 
               {/* 创作提示区域 - 只读的 Reflection */}
-              <div className="bg-white/95 backdrop-blur-sm border-2 border-slate-300 rounded-2xl shadow-lg transition-all duration-300 hover:shadow-xl hover:border-slate-400 p-6 flex flex-col h-[276px]">
+              <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-lg transition-shadow duration-300 hover:shadow-xl p-6 flex flex-col h-[276px]">
                 <div className="flex items-center mb-3 flex-shrink-0 h-8">
                   <h3 className="font-display font-bold text-slate-800 text-lg flex items-center">
                     <Sparkles className="w-5 h-5 text-yellow-500 mr-2" />

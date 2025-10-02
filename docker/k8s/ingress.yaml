@@ -11,6 +11,7 @@ spec:
   - http:
       paths:
       # API 路径 - 必须在前面，优先匹配
+      # /api/xxx -> 直接转发到 API 服务的 /api/xxx
       - path: /api
         pathType: Prefix
         backend:

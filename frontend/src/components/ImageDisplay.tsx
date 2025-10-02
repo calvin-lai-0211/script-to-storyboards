@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ImageIcon, Download, Maximize2, Sparkles, Camera } from 'lucide-react';
+import { ImageIcon, Maximize2, Sparkles, Camera } from 'lucide-react';
+import ImagePreviewModal from './ImagePreviewModal';
 
 interface ImageDisplayProps {
   imageUrl: string | null;
@@ -9,15 +10,11 @@ interface ImageDisplayProps {
 const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
-  const handleDownload = () => {
+  const handlePreview = () => {
     if (imageUrl) {
-      const link = document.createElement('a');
-      link.href = imageUrl;
-      link.download = `ai-generated-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      setShowPreview(true);
     }
   };
 
@@ -77,10 +74,11 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
             <img
               src={imageUrl}
               alt="AI Generated Artwork"
-              className={`w-full h-full object-contain transition-all duration-700 ${
+              className={`w-full h-full object-contain transition-all duration-700 cursor-pointer ${
                 imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
               } ${isHovered ? 'scale-105' : 'scale-100'}`}
               onLoad={() => setImageLoaded(true)}
+              onClick={handlePreview}
               style={{ filter: isHovered ? 'brightness(1.05) contrast(1.05)' : 'none' }}
             />
 
@@ -89,13 +87,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
               isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
             }`}>
               <button
-                onClick={handleDownload}
-                className="p-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg hover:bg-white hover:scale-110 transition-all duration-200 group border border-slate-200"
-                title="下载图片"
-              >
-                <Download className="w-5 h-5 text-slate-700 group-hover:text-blue-600" />
-              </button>
-              <button
+                onClick={handlePreview}
                 className="p-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg hover:bg-white hover:scale-110 transition-all duration-200 group border border-slate-200"
                 title="全屏查看"
               >
@@ -149,6 +141,14 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
 
       {/* 底部阴影 */}
       <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-3/4 h-4 bg-gradient-to-r from-transparent via-slate-300/30 to-transparent blur-lg"></div>
+
+      {/* 图片预览浮层 */}
+      {showPreview && imageUrl && (
+        <ImagePreviewModal
+          imageUrl={imageUrl}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
     </div>
   );
 };
