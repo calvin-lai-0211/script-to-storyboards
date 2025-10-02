@@ -1,0 +1,62 @@
+/**
+ * API Configuration
+ */
+
+// API Base URL
+// Use ?? instead of || to allow empty string for K8s deployment
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+
+// API Endpoints
+export const API_ENDPOINTS = {
+  // Character endpoints
+  getCharacter: (id: string | number) => `${API_BASE_URL}/api/character/${id}`,
+  updateCharacterPrompt: (id: string | number) => `${API_BASE_URL}/api/character/${id}/prompt`,
+  generateCharacterImage: (id: string | number) => `${API_BASE_URL}/api/character/${id}/generate-image`,
+
+  // Storyboard endpoints
+  generateStoryboard: () => `${API_BASE_URL}/api/storyboard/generate`,
+
+  // Characters list endpoints
+  getCharacters: (dramaName: string, episodeNumber: number) =>
+    `${API_BASE_URL}/api/characters/${dramaName}/${episodeNumber}`,
+  generateCharacters: () => `${API_BASE_URL}/api/characters/generate`,
+
+  // Scenes endpoints
+  getScenes: (dramaName: string, episodeNumber: number) =>
+    `${API_BASE_URL}/api/scenes/${dramaName}/${episodeNumber}`,
+  generateScenes: () => `${API_BASE_URL}/api/scenes/generate`,
+
+  // Props endpoints
+  generateProps: () => `${API_BASE_URL}/api/props/generate`,
+
+  // Scripts endpoints
+  listEpisodes: (scriptTitle: string) => `${API_BASE_URL}/api/scripts/${scriptTitle}/episodes`,
+};
+
+// API Response type
+export interface ApiResponse<T = any> {
+  code: number;
+  data: T | null;
+  message: string;
+}
+
+// Helper function for API calls
+export const apiCall = async <T = any>(url: string, options?: RequestInit): Promise<T> => {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  const result: ApiResponse<T> = await response.json();
+
+  // Check if API returned error (code !== 0)
+  if (result.code !== 0) {
+    throw new Error(result.message || `API error! code: ${result.code}`);
+  }
+
+  // Return the data field
+  return result.data as T;
+};

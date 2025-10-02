@@ -2,7 +2,9 @@ DB_CONFIG = {
     'host': 'ai-database.cluster-cbkc4usgshmy.us-east-1.rds.amazonaws.com',
     'database': 'script_to_storyboards',
     'user': 'postgres',
-    'password': '2VscIi3KhVx2J5uNWECr47SLQDR9fl3EH4JYk8LS5y2WucjYeN'
+    'password': '2VscIi3KhVx2J5uNWECr47SLQDR9fl3EH4JYk8LS5y2WucjYeN',
+    'connect_timeout': 10,  # Connection timeout in seconds
+    'options': '-c statement_timeout=30000'  # Query timeout: 30 seconds
 }
 
 YIZHAN_API_CONFIG = {
@@ -55,3 +57,14 @@ T2I_MODEL_CONFIG = {
 
 # Concurrency settings
 MAX_CONCURRENT_THREADS = 5
+
+# Cloudflare R2 Storage Configuration
+R2_CONFIG = {
+    "region_name": "auto",
+    "endpoint_url": "https://17505f788c7c54ec3ab4ddc52da5c140.r2.cloudflarestorage.com",
+    "access_key_id": "398a4f0dd4a4b760eef50ce18ae69d93",
+    "secret_access_key": "dc322d84ca5781b9f19768d7c42b062739057980c934fc7a60df6cff55127d80",
+    "bucket_name": "ai-file",
+    "cdn_base_url": "https://cdn.gaudivideo.com",
+    "default_folder": "drama/upload"  # Default upload folder
+}
