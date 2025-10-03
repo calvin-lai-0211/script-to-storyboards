@@ -1,13 +1,13 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout";
-import ScriptsList from "./pages/ScriptsList";
-import Workspace from "./pages/Workspace";
-import Characters from "./pages/Characters";
-import Scenes from "./pages/Scenes";
-import Props from "./pages/Props";
-import CharacterViewer from "./pages/CharacterViewer";
-import SceneViewer from "./pages/SceneViewer";
-import PropViewer from "./pages/PropViewer";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout'
+import ScriptsList from './pages/ScriptsList'
+import Workspace from './pages/Workspace'
+import Characters from './pages/Characters'
+import Scenes from './pages/Scenes'
+import Props from './pages/Props'
+import CharacterViewer from './pages/CharacterViewer'
+import SceneViewer from './pages/SceneViewer'
+import PropViewer from './pages/PropViewer'
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
         </Routes>
       </MainLayout>
     </Router>
-  );
+  )
 }
 
-export default App;
+export default App
