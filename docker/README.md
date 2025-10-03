@@ -34,10 +34,10 @@ docker/
 ./docker/local-run.sh
 
 # 📊 查看日志
-docker-compose -f docker/compose/docker-compose.yml logs -f
+docker-compose -f docker/docker-compose.yml logs -f
 
 # 🛑 停止服务
-docker-compose -f docker/compose/docker-compose.yml down
+docker-compose -f docker/docker-compose.yml down
 ```
 
 访问：
@@ -162,7 +162,7 @@ kubectl logs -f deployment/storyboard-api
 ./docker/local-run.sh --build
 
 # Compose - 方法 2
-cd docker/compose
+cd docker
 docker-compose up -d --build
 
 # K8s - 本地 k3d/k3s

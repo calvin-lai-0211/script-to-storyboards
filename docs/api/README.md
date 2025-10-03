@@ -17,6 +17,7 @@ http://localhost:8001/docs
 ```
 
 这是 FastAPI 自动生成的交互式 API 文档，提供：
+
 - ✅ 完整的 API 端点列表
 - ✅ **详细的 TypeScript 类型定义**（不再显示 "any"）
 - ✅ 请求/响应示例
@@ -45,12 +46,13 @@ http://localhost:8001/redoc
 ### 响应格式
 
 **所有 API 响应都遵循统一的包装格式**：
+前端对统一返回结构的定义如下：
 
 ```typescript
 interface ApiResponse<T> {
-  code: number;        // 0 表示成功，非 0 表示错误
-  message: string;     // 消息描述（默认 "success"）
-  data: T | null;      // 实际数据，类型为 T（泛型）
+  code: number; // 0 表示成功，非 0 表示错误
+  message: string; // 消息描述（默认 "success"）
+  data: T | null; // 实际数据，类型为 T（泛型）
 }
 ```
 
@@ -71,12 +73,12 @@ interface ApiResponse<T> {
 
 ### 错误码
 
-| 错误码 | 说明 |
-|--------|------|
-| 0 | 成功 |
-| 1 | 通用错误 |
-| 404 | 资源不存在 |
-| 500 | 服务器内部错误 |
+| 错误码 | 说明           |
+| ------ | -------------- |
+| 0      | 成功           |
+| 1      | 通用错误       |
+| 404    | 资源不存在     |
+| 500    | 服务器内部错误 |
 
 ## 主要 API 端点
 
@@ -112,6 +114,7 @@ interface ScriptMetadata {
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 0,
@@ -140,6 +143,7 @@ GET /api/scripts/{key}
 ```
 
 **参数**:
+
 - `key` (path): 剧本唯一标识符
 
 **响应类型**: `ScriptDetailResponse`
@@ -150,8 +154,8 @@ interface ScriptDetail {
   key: string;
   title: string;
   episode_num: number;
-  content: string;           // 剧本完整内容
-  roles: string[] | null;    // 角色列表
+  content: string; // 剧本完整内容
+  roles: string[] | null; // 角色列表
   sceneries: string[] | null; // 场景列表
   author: string | null;
   creation_year: number | null;
@@ -168,6 +172,7 @@ GET /api/storyboards/{key}
 ```
 
 **参数**:
+
 - `key` (path): 剧本唯一标识符
 
 **响应类型**: `StoryboardResponse`
@@ -180,27 +185,27 @@ interface StoryboardResponse {
     key: string;
     drama_name: string;
     episode_number: number;
-    storyboards: FlatStoryboard[];  // 扁平化的分镜数据
+    storyboards: FlatStoryboard[]; // 扁平化的分镜数据
     count: number;
   };
 }
 
 interface FlatStoryboard {
   id: number;
-  scene_number: string;           // 场景编号
-  scene_description: string;      // 场景描述
-  shot_number: string;            // 镜头编号
-  shot_description: string;       // 镜头描述
-  sub_shot_number: string;        // 子镜头编号
-  camera_angle: string;           // 镜头角度/景别
-  characters: string[];           // 涉及角色列表
-  scene_context: string[];        // 场景上下文列表
-  key_props: string[];            // 关键道具列表
-  image_prompt: string;           // 图像生成提示词
-  video_prompt: string | null;    // 视频生成提示词
-  dialogue_sound: string;         // 对白/音效
-  duration_seconds: number;       // 时长（秒）
-  notes: string;                  // 导演备注
+  scene_number: string; // 场景编号
+  scene_description: string; // 场景描述
+  shot_number: string; // 镜头编号
+  shot_description: string; // 镜头描述
+  sub_shot_number: string; // 子镜头编号
+  camera_angle: string; // 镜头角度/景别
+  characters: string[]; // 涉及角色列表
+  scene_context: string[]; // 场景上下文列表
+  key_props: string[]; // 关键道具列表
+  image_prompt: string; // 图像生成提示词
+  video_prompt: string | null; // 视频生成提示词
+  dialogue_sound: string; // 对白/音效
+  duration_seconds: number; // 时长（秒）
+  notes: string; // 导演备注
 }
 ```
 
@@ -337,12 +342,13 @@ interface UploadImageResponse {
   code: number;
   message: string;
   data: {
-    url: string;  // 上传后的图片 URL
+    url: string; // 上传后的图片 URL
   };
 }
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 0,
@@ -374,13 +380,14 @@ interface EpisodeMemory {
   id: number;
   script_name: string;
   episode_number: number;
-  plot_summary: string;      // 剧情摘要文本
+  plot_summary: string; // 剧情摘要文本
   options: string | null;
   created_at: string | null; // ISO 8601 格式
 }
 ```
 
 **响应示例**:
+
 ```json
 {
   "code": 0,
@@ -403,7 +410,7 @@ interface EpisodeMemory {
 前端使用统一的 `apiCall` 函数调用 API：
 
 ```typescript
-import { API_ENDPOINTS, apiCall } from '@api';
+import { API_ENDPOINTS, apiCall } from "@api";
 
 // 获取剧本
 const script = await apiCall(API_ENDPOINTS.getScript(key));

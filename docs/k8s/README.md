@@ -1,266 +1,146 @@
-# K3s Deployment Guide
+# Kubernetes 部署文档
 
-This directory contains Kubernetes manifests for deploying Script-to-Storyboards to K3s.
+Script-to-Storyboards 的 Kubernetes 部署完整指南。
 
-## Prerequisites
+## 📚 文档导航
 
-### For Mac (Development)
+### 快速开始
 
-1. **k3d** installed (`brew install k3d`)
-2. **kubectl** installed
-3. **Docker Desktop** running
+- **[本地环境搭建](local-setup.md)** - 安装 k3d/k3s 和配置本地 K8s 集群
+- **[本地部署](local-deployment.md)** - 在本地 K8s 环境部署应用
+- **[远程部署](remote-deployment.md)** - 部署到生产环境 K3s 服务器
 
-### For Linux Server (Production)
+### 运维管理
 
-1. **K3s** installed on your server
-2. **kubectl** configured to connect to your K3s cluster
-3. **Docker** installed
+- **[日常运维](operations.md)** - 查看日志、重启服务、扩缩容等常用操作
+- **[故障排查](troubleshooting.md)** - 常见问题诊断和解决方案
 
-## Quick Start
+## 🎯 快速链接
 
-### 1. Setup kubectl to connect to remote K3s
-
-**Option A: SSH Tunnel (Recommended)**
+### 一键部署
 
 ```bash
-# Create SSH tunnel
-ssh -L 6443:localhost:6443 calvin -N -f
+# 本地 K8s 部署
+cd docker/k8s
+./local-deploy.sh
 
-# Your existing kubeconfig should work now
-kubectl get nodes
+# 远程生产部署
+./deploy-to-remote.sh
 ```
 
-**Option B: Copy kubeconfig from remote server**
+### K8s 架构
 
-```bash
-# On remote server
-ssh calvin "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/calvin-k3s.yaml
-
-# Edit the file and change server address
-# From: server: https://127.0.0.1:6443
-# To:   server: https://YOUR_SERVER_IP:6443
-
-# Use the config
-export KUBECONFIG=~/.kube/calvin-k3s.yaml
-kubectl get nodes
+```
+┌──────────────────────────────────────────────┐
+│            Ingress (Port 80)                 │
+│   - /        → Frontend Service              │
+│   - /api/*   → API Service                   │
+└──────────────────────────────────────────────┘
+                      │
+        ┌─────────────┴──────────────┐
+        ▼                            ▼
+┌───────────────┐            ┌──────────────┐
+│   Frontend    │            │     API      │
+│  Deployment   │            │  Deployment  │
+│               │            │              │
+│ - Nginx       │            │ - FastAPI    │
+│ - React App   │            │ - Python 3.12│
+│ - Replicas: 1 │            │ - Replicas: 1│
+└───────────────┘            └──────────────┘
+                                     │
+                                     ▼
+                             ┌──────────────┐
+                             │    Redis     │
+                             │  Deployment  │
+                             │              │
+                             │ - Session    │
+                             │ - Replicas: 1│
+                             └──────────────┘
 ```
 
-### 2. Deploy to K3s
+## 📦 K8s 资源清单
 
+| 文件 | 资源类型 | 说明 |
+|------|---------|------|
+| `api-deployment.yaml` | Deployment + Service | API 后端服务（本地开发） |
+| `api-deployment.prod.yaml` | Deployment + Service | API 后端服务（生产环境） |
+| `frontend-deployment.yaml` | Deployment + Service | Frontend 前端服务 |
+| `redis-deployment.yaml` | Deployment + Service | Redis 会话存储 |
+| `nginx-configmap.yaml` | ConfigMap | Nginx 配置文件 |
+| `ingress.yaml` | Ingress | 统一入口和路由规则 |
+| `k3d-config.yaml` | k3d 配置 | 本地集群创建配置 |
+
+## 🚀 快速命令参考
+
+### 查看状态
 ```bash
-# Make scripts executable
-chmod +x k8s/deploy.sh k8s/undeploy.sh
-
-# Run deployment
-./k8s/deploy.sh
+kubectl get all                          # 所有资源
+kubectl get pods                         # Pod 列表
+kubectl get svc                          # 服务列表
+kubectl get ingress                      # Ingress 列表
 ```
 
-The script will:
-
-1. ✅ Build Docker images locally
-2. ✅ Import images to k3s
-3. ✅ Deploy API and Frontend
-4. ✅ Optionally deploy Ingress
-
-### 3. Access the Application
-
-**Frontend**:
-
-- Via NodePort: `http://<node-ip>:30866`
-- Via localhost (if using SSH tunnel): `http://localhost:30866`
-
-**API**:
-
-- Internal only: `http://storyboard-api:8000`
-
-**With Ingress** (optional):
-
-- Add to `/etc/hosts`: `<node-ip> storyboard.local`
-- Access: `http://storyboard.local`
-
-## Manual Deployment
-
-If you prefer to deploy manually:
-
+### 查看日志
 ```bash
-# 1. Build and import images
-cd /path/to/script-to-storyboards
-docker-compose build
-
-# Import to k3s
-docker save script-to-storyboards-api:latest | sudo k3s ctr images import -
-docker save script-to-storyboards-frontend:latest | sudo k3s ctr images import -
-
-# 2. Deploy to k3s
-kubectl apply -f k8s/api-deployment.yaml
-kubectl apply -f k8s/frontend-deployment.yaml
-
-# Optional: Deploy Ingress
-kubectl apply -f k8s/ingress.yaml
+kubectl logs -f deployment/storyboard-api        # API 日志
+kubectl logs -f deployment/storyboard-frontend   # Frontend 日志
+kubectl logs -f deployment/storyboard-redis      # Redis 日志
 ```
 
-## Management Commands
-
-### Quick Update Scripts
-
-快速更新单个服务（推荐用于开发）：
-
+### 重启服务
 ```bash
-# 快速更新 API（重建镜像 → 导入 → 重启）
-./docker/k8s/update-api.sh
-
-# 快速更新 Frontend（重建镜像（含文档） → 导入 → 重启）
-./docker/k8s/update-frontend.sh
-```
-
-### 常用命令
-
-```bash
-# View pods
-kubectl get pods
-
-# View services
-kubectl get services
-
-# View logs
-kubectl logs -f deployment/storyboard-api
-kubectl logs -f deployment/storyboard-frontend
-
-# Restart deployment
 kubectl rollout restart deployment/storyboard-api
 kubectl rollout restart deployment/storyboard-frontend
-
-# Scale deployment
-kubectl scale deployment/storyboard-api --replicas=2
-
-# Delete all resources
-./k8s/undeploy.sh
-# Or manually:
-kubectl delete -f k8s/
 ```
 
-## Troubleshooting
-
-### Pods not starting
-
+### 更新部署
 ```bash
-# Check pod status
-kubectl describe pod <pod-name>
-
-# Check pod logs
-kubectl logs <pod-name>
+cd docker/k8s
+./update-api.sh          # 仅更新 API
+./update-frontend.sh     # 仅更新 Frontend
+./update-config.sh       # 仅更新配置
 ```
 
-### Image pull errors
-
-Make sure images are imported to k3s:
-
+### 清理资源
 ```bash
-# List images in k3s
-sudo k3s ctr images list | grep storyboard
-
-# Re-import if needed
-docker save script-to-storyboards-api:latest | sudo k3s ctr images import -
+./undeploy.sh            # 删除所有部署
+k3d cluster delete calvin # 删除整个集群
 ```
 
-### Cannot connect to cluster
+## 🔧 环境要求
 
-```bash
-# Test connection
-kubectl cluster-info
+### 本地开发
+- **kubectl**: K8s 命令行工具
+- **k3d** (Mac/Windows): 本地 K8s 集群
+- **Docker**: 容器运行时
 
-# Check SSH tunnel (if using)
-ps aux | grep "ssh.*6443"
+### 生产环境
+- **K3s**: 轻量级 K8s（已安装在服务器）
+- **kubectl**: 本地通过 SSH 访问远程集群
 
-# Recreate tunnel
-ssh -L 6443:localhost:6443 calvin -N -f
-```
+## 📖 相关文档
 
-### Service not accessible
+- [开发入门指南](../dev/getting-started.md) - 所有开发模式对比
+- [Docker Compose 部署](../../docker/docker-compose.md) - 本地容器化部署
+- [Google OAuth 配置](../dev/google-oauth-authentication.md) - 认证配置
 
-```bash
-# Check service
-kubectl get svc
+## ❓ 常见问题
 
-# Get NodePort
-kubectl get svc storyboard-frontend -o jsonpath='{.spec.ports[0].nodePort}'
+**Q: 本地和生产环境有什么区别？**
+A: 主要是环境变量不同：
+- 本地: `API_BASE_URL=http://localhost:8080`, `ENV=development`
+- 生产: `API_BASE_URL=https://videos.ethanlyn.com`, `ENV=production`
 
-# Test from within cluster
-kubectl run -it --rm debug --image=busybox --restart=Never -- sh
-# Then: wget -O- http://storyboard-api:8000/health
-```
+**Q: 如何在本地和生产之间切换？**
+A: 使用不同的部署脚本和配置文件：
+- 本地: `./local-deploy.sh` 使用 `api-deployment.yaml`
+- 生产: `./deploy-to-remote.sh` 使用 `api-deployment.prod.yaml`
 
-## Configuration
+**Q: 需要手动管理镜像吗？**
+A: 不需要，部署脚本会自动：
+- 构建 Docker 镜像
+- 导入到 K8s 集群（本地）或打包上传（远程）
+- 应用配置并重启服务
 
-### Change NodePort
-
-Edit `k8s/frontend-deployment.yaml`:
-
-```yaml
-spec:
-  type: NodePort
-  ports:
-    - port: 80
-      targetPort: 80
-      nodePort: 30866 # Change this (30000-32767)
-```
-
-### Add Persistent Storage
-
-If you need to persist data, add volumes to deployments:
-
-```yaml
-spec:
-  template:
-    spec:
-      volumes:
-        - name: data
-          hostPath:
-            path: /data/storyboard
-      containers:
-        - name: api
-          volumeMounts:
-            - name: data
-              mountPath: /app/data
-```
-
-### Resource Limits
-
-Adjust in deployment files:
-
-```yaml
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
-  limits:
-    memory: "1Gi"
-    cpu: "1000m"
-```
-
-## Architecture
-
-```
-┌───────────────────┐
-│  Ingress          │ (Optional)
-│  storyboard.local │
-└────────┬──────────┘
-         │
-    ┌────┴─────┬────────────┐
-    │          │            │
-┌───▼────┐  ┌──▼──────┐ ┌───▼──────┐
-│Frontend│  │   API   │ │Database  │
-│NodePort│  │ClusterIP│ │(External)│
-│  :30866│  │  :8000  │ │          │
-└────────┘  └─────────┘ └──────────┘
-```
-
-## Clean Up
-
-```bash
-# Remove all resources
-./k8s/undeploy.sh
-
-# Or manually
-kubectl delete -f k8s/
-```
+**Q: 部署失败怎么办？**
+A: 参考 [故障排查文档](troubleshooting.md) 查看常见问题和解决方案。

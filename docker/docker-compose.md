@@ -26,7 +26,7 @@
 
 ```bash
 # 1. 进入 compose 目录
-cd docker/compose
+cd docker
 
 # 2. 构建镜像
 docker-compose build
@@ -191,7 +191,7 @@ docker-compose up -d
 ./docker/local-run.sh --build
 
 # 方法 2: 手动重建
-cd docker/compose
+cd docker
 docker-compose down
 docker-compose build
 docker-compose up -d
@@ -269,7 +269,7 @@ DB_CONFIG = {
 
 ```yaml
 args:
-  - VITE_API_BASE_URL=http://localhost:8000  # 确保端口正确
+  - VITE_API_BASE_URL=http://localhost:8000 # 确保端口正确
 ```
 
 ### 磁盘空间不足
@@ -309,10 +309,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
+          cpus: "2"
           memory: 2G
         reservations:
-          cpus: '1'
+          cpus: "1"
           memory: 1G
 ```
 

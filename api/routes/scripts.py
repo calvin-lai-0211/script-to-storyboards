@@ -16,6 +16,7 @@ from api.schemas import (
     ScriptListResponse,
     ScriptDetailResponse
 )
+from api.middleware.auth import require_auth, UserPrincipal
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,11 @@ def get_db():
         pass
 
 @router.get("/scripts", response_model=ScriptListResponse)
-async def get_all_scripts(response: Response, db: Database = Depends(get_db)):
+async def get_all_scripts(
+    response: Response,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
     """
     Get all scripts with metadata (title, episode_num, author, creation_year).
     """
@@ -54,7 +59,11 @@ async def get_all_scripts(response: Response, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/scripts/{key}", response_model=ScriptDetailResponse)
-async def get_script(key: str, db: Database = Depends(get_db)):
+async def get_script(
+    key: str,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
     """
     Get script content by key.
     """

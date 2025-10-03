@@ -1,0 +1,29 @@
+name: Auto Delete Branch
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  delete-branch:
+    # 只在 PR 被合并（而非关闭）时运行
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 🗑️ Delete merged branch
+        run: |
+          echo "PR #${{ github.event.pull_request.number }} was merged"
+          echo "Deleting branch: ${{ github.event.pull_request.head.ref }}"
+
+          # 删除远程分支
+          git push origin --delete ${{ github.event.pull_request.head.ref }} || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ✅ Branch deleted
+        run: |
+          echo "✅ Successfully deleted branch: ${{ github.event.pull_request.head.ref }}"
