@@ -13,7 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, File, Query, Request, Response, UploadFile
 
 from utils.upload import R2Uploader
-from api.models import ApiResponse
+from api.schemas import ApiResponse
 
 logger = logging.getLogger(__name__)
 

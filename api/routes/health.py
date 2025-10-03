@@ -2,7 +2,7 @@
 Health check endpoints.
 """
 from fastapi import APIRouter, Response
-from api.models import ApiResponse
+from api.schemas import ApiResponse
 
 router = APIRouter()
 

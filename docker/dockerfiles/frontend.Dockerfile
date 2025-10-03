@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files from frontend directory
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -12,8 +12,8 @@ RUN npm install -g pnpm
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Copy frontend source code
+COPY frontend/ .
 
 # Accept build argument for API URL
 ARG VITE_API_BASE_URL=http://localhost:8000
@@ -24,14 +24,32 @@ RUN echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" > .env
 # Build the application
 RUN pnpm run build
 
+# Documentation build stage
+FROM python:3.12-alpine AS docs-builder
+
+WORKDIR /docs-build
+
+# Install mkdocs-material
+RUN pip install --no-cache-dir mkdocs-material
+
+# Copy documentation files from project root context
+COPY docs ./docs
+COPY mkdocs.yml .
+
+# Build documentation
+RUN mkdocs build
+
 # Production stage
 FROM nginx:alpine
 
 # Copy built dist from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy documentation from docs-builder stage
+COPY --from=docs-builder /docs-build/site /usr/share/nginx/html/docs
+
+# Copy nginx configuration from frontend directory
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 80

@@ -1,5 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Lightbulb, History, Sparkles, Wand2, Upload, X, Image } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Send,
+  Loader2,
+  Lightbulb,
+  History,
+  Sparkles,
+  Wand2,
+  Upload,
+  X,
+  Image,
+} from "lucide-react";
 
 interface PromptInputProps {
   onSend: (prompt: string, referenceImageUrl?: string) => void;
@@ -7,27 +17,29 @@ interface PromptInputProps {
 }
 
 const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [referenceImage, setReferenceImage] = useState<File | null>(null);
-  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(
+    null,
+  );
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const promptSuggestions = [
-    '一只在太空中漂浮的猫，超现实主义风格',
-    '未来科幻城市，霓虹灯光，赛博朋克风格',
-    '梦幻森林中的精灵，魔法光芒围绕',
-    '蒸汽朋克风格的机械龙，青铜色泽',
-    '日式庭院中的樱花飘落，水墨画风格'
+    "一只在太空中漂浮的猫，超现实主义风格",
+    "未来科幻城市，霓虹灯光，赛博朋克风格",
+    "梦幻森林中的精灵，魔法光芒围绕",
+    "蒸汽朋克风格的机械龙，青铜色泽",
+    "日式庭院中的樱花飘落，水墨画风格",
   ];
 
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [prompt]);
@@ -35,17 +47,17 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
   const handleSend = () => {
     if (prompt.trim() && !loading) {
       onSend(prompt, referenceImageUrl || undefined);
-      setPrompt('');
+      setPrompt("");
       setShowSuggestions(false);
     }
   };
 
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append("image", file);
 
-    const response = await fetch('http://localhost:8899/api/upload-image', {
-      method: 'POST',
+    const response = await fetch("http://localhost:8899/api/upload-image", {
+      method: "POST",
       body: formData,
     });
 
@@ -55,18 +67,18 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
     if (data.code === 0 && data.data) {
       return data.data;
     } else {
-      throw new Error(data.message || '图片上传失败');
+      throw new Error(data.message || "图片上传失败");
     }
   };
 
   const handleImageUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件');
+    if (!file.type.startsWith("image/")) {
+      alert("请选择图片文件");
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('图片大小不能超过10MB');
+      alert("图片大小不能超过10MB");
       return;
     }
 
@@ -76,8 +88,8 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
       setReferenceImage(file);
       setReferenceImageUrl(imageUrl);
     } catch (error) {
-      console.error('图片上传失败:', error);
-      alert('图片上传失败，请重试');
+      console.error("图片上传失败:", error);
+      alert("图片上传失败，请重试");
     } finally {
       setUploading(false);
     }
@@ -113,12 +125,12 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
     setReferenceImage(null);
     setReferenceImageUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -137,11 +149,13 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
   return (
     <div className="relative">
       {/* 主输入容器 - 提高对比度 */}
-      <div className={`relative bg-white/95 backdrop-blur-sm border-2 rounded-2xl shadow-lg transition-all duration-300 ${
-        isFocused
-          ? 'border-blue-400 shadow-xl bg-white'
-          : 'border-slate-300 hover:border-slate-400 hover:shadow-xl'
-      }`}>
+      <div
+        className={`relative bg-white/95 backdrop-blur-sm border-2 rounded-2xl shadow-lg transition-all duration-300 ${
+          isFocused
+            ? "border-blue-400 shadow-xl bg-white"
+            : "border-slate-300 hover:border-slate-400 hover:shadow-xl"
+        }`}
+      >
         {/* 输入框标题 */}
         <div className="flex items-center justify-between p-4 pb-3 border-b border-slate-200">
           <div className="flex items-center space-x-2">
@@ -170,7 +184,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
           <textarea
             ref={textareaRef}
             className={`w-full bg-transparent text-slate-800 placeholder-slate-500 resize-none focus:outline-none transition-all duration-200 ${
-              loading ? 'cursor-not-allowed opacity-70' : ''
+              loading ? "cursor-not-allowed opacity-70" : ""
             }`}
             rows={3}
             placeholder="描述你想要创作的图像... (例如: 一个梦幻的城堡在云端，周围有彩虹和独角兽)"
@@ -180,7 +194,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             disabled={loading}
-            style={{ minHeight: '80px', maxHeight: '200px' }}
+            style={{ minHeight: "80px", maxHeight: "200px" }}
           />
 
           {/* 图片上传区域 */}
@@ -190,8 +204,8 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
               <div
                 className={`relative border-2 border-dashed rounded-xl p-4 transition-all duration-300 cursor-pointer ${
                   dragOver
-                    ? 'border-blue-400 bg-blue-50'
-                    : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
+                    ? "border-blue-400 bg-blue-50"
+                    : "border-slate-300 hover:border-slate-400 hover:bg-slate-50"
                 }`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -208,7 +222,7 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-slate-700">
-                      {uploading ? '上传中...' : '上传参考图片（可选）'}
+                      {uploading ? "上传中..." : "上传参考图片（可选）"}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
                       点击选择或拖拽图片到此区域，支持 JPG、PNG 格式，最大 10MB
@@ -240,9 +254,13 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
                       <Image className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">参考图片</span>
+                      <span className="text-sm font-medium text-blue-800">
+                        参考图片
+                      </span>
                     </div>
-                    <p className="text-xs text-blue-600 mt-1">{referenceImage.name}</p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      {referenceImage.name}
+                    </p>
                   </div>
                   <button
                     onClick={removeReferenceImage}
@@ -259,9 +277,11 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
           {/* 底部控制栏 */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
             <div className="flex items-center space-x-3 text-sm">
-              <span className={`transition-colors duration-200 ${
-                isNearLimit ? 'text-orange-600' : 'text-slate-600'
-              }`}>
+              <span
+                className={`transition-colors duration-200 ${
+                  isNearLimit ? "text-orange-600" : "text-slate-600"
+                }`}
+              >
                 {characterCount}/{maxCharacters}
               </span>
               {prompt.length > 0 && (
@@ -278,8 +298,8 @@ const PromptInput: React.FC<PromptInputProps> = ({ onSend, loading }) => {
               disabled={!prompt.trim() || loading}
               className={`group relative overflow-hidden px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
                 !prompt.trim() || loading
-                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               }`}
             >
               <div className="relative flex items-center space-x-2">

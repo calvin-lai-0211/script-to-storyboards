@@ -1,31 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { X, Download, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { X, Download, ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 
 interface ImagePreviewModalProps {
   imageUrl: string;
   onClose: () => void;
 }
 
-const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose }) => {
+const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
+  imageUrl,
+  onClose,
+}) => {
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
 
   // ESC 键关闭
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
   // 阻止背景滚动
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
@@ -36,7 +39,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
 
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = blobUrl;
       link.download = `ai-generated-${Date.now()}.png`;
       document.body.appendChild(link);
@@ -46,21 +49,21 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose
       // 清理 blob URL
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      console.error('下载失败:', error);
-      alert('下载失败，请稍后重试');
+      console.error("下载失败:", error);
+      alert("下载失败，请稍后重试");
     }
   };
 
   const handleZoomIn = () => {
-    setScale(prev => Math.min(prev + 0.25, 3));
+    setScale((prev) => Math.min(prev + 0.25, 3));
   };
 
   const handleZoomOut = () => {
-    setScale(prev => Math.max(prev - 0.25, 0.5));
+    setScale((prev) => Math.max(prev - 0.25, 0.5));
   };
 
   const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
+    setRotation((prev) => (prev + 90) % 360);
   };
 
   const handleReset = () => {
@@ -116,7 +119,9 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose
           >
             重置
           </button>
-          <span className="text-white text-sm ml-2">{Math.round(scale * 100)}%</span>
+          <span className="text-white text-sm ml-2">
+            {Math.round(scale * 100)}%
+          </span>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -154,7 +159,7 @@ const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({ imageUrl, onClose
           className="max-w-full max-h-[95vh] object-contain transition-all duration-300 ease-out"
           style={{
             transform: `scale(${scale}) rotate(${rotation}deg)`,
-            transformOrigin: 'center center'
+            transformOrigin: "center center",
           }}
           draggable={false}
         />

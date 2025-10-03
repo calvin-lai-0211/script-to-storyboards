@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { ImageIcon, Maximize2, Sparkles, Camera } from 'lucide-react';
-import ImagePreviewModal from './ImagePreviewModal';
+import React, { useState } from "react";
+import { ImageIcon, Maximize2, Sparkles, Camera } from "lucide-react";
+import ImagePreviewModal from "./ImagePreviewModal";
 
 interface ImageDisplayProps {
   imageUrl: string | null;
   loading?: boolean;
 }
 
-const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }) => {
+const ImageDisplay: React.FC<ImageDisplayProps> = ({
+  imageUrl,
+  loading = false,
+}) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -32,13 +35,16 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
         {/* 装饰性网格 - 降低透明度 */}
         {!imageUrl && !loading && (
           <div className="absolute inset-0 opacity-10">
-            <div className="h-full w-full" style={{
-              backgroundImage: `
+            <div
+              className="h-full w-full"
+              style={{
+                backgroundImage: `
                 linear-gradient(rgba(148, 163, 184, 0.3) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(148, 163, 184, 0.3) 1px, transparent 1px)
               `,
-              backgroundSize: '30px 30px'
-            }}></div>
+                backgroundSize: "30px 30px",
+              }}
+            ></div>
           </div>
         )}
 
@@ -48,17 +54,27 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
             {/* 加载动画 */}
             <div className="relative mb-6">
               <div className="w-16 h-16 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+              <div
+                className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-500 rounded-full animate-spin"
+                style={{
+                  animationDirection: "reverse",
+                  animationDuration: "1.5s",
+                }}
+              ></div>
             </div>
 
             {/* 生成进度文字 */}
             <div className="text-center">
               <div className="flex items-center space-x-2 mb-2">
                 <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
-                <span className="text-lg font-semibold text-slate-800">AI 正在创作中</span>
+                <span className="text-lg font-semibold text-slate-800">
+                  AI 正在创作中
+                </span>
                 <Sparkles className="w-5 h-5 text-purple-500 animate-pulse" />
               </div>
-              <p className="text-sm text-slate-600">请稍候，正在将您的想象转化为现实...</p>
+              <p className="text-sm text-slate-600">
+                请稍候，正在将您的想象转化为现实...
+              </p>
             </div>
 
             {/* 波浪动画 */}
@@ -75,17 +91,23 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
               src={imageUrl}
               alt="AI Generated Artwork"
               className={`w-full h-full object-contain transition-all duration-700 cursor-pointer ${
-                imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-              } ${isHovered ? 'scale-105' : 'scale-100'}`}
+                imageLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+              } ${isHovered ? "scale-105" : "scale-100"}`}
               onLoad={() => setImageLoaded(true)}
               onClick={handlePreview}
-              style={{ filter: isHovered ? 'brightness(1.05) contrast(1.05)' : 'none' }}
+              style={{
+                filter: isHovered ? "brightness(1.05) contrast(1.05)" : "none",
+              }}
             />
 
             {/* 悬停时的操作按钮 */}
-            <div className={`absolute top-4 right-4 flex space-x-2 transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}>
+            <div
+              className={`absolute top-4 right-4 flex space-x-2 transition-all duration-300 ${
+                isHovered
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 -translate-y-2"
+              }`}
+            >
               <button
                 onClick={handlePreview}
                 className="p-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg hover:bg-white hover:scale-110 transition-all duration-200 group border border-slate-200"
@@ -96,9 +118,13 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
             </div>
 
             {/* 底部信息栏 */}
-            <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-800/80 to-transparent p-4 transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}>
+            <div
+              className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-800/80 to-transparent p-4 transition-all duration-300 ${
+                isHovered
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-4"
+              }`}
+            >
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center space-x-2">
                   <Camera className="w-4 h-4" />
@@ -125,7 +151,9 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ imageUrl, loading = false }
             </div>
 
             <div className="text-center max-w-xs">
-              <h3 className="text-xl font-semibold text-slate-800 mb-2">等待创作</h3>
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                等待创作
+              </h3>
               <p className="text-slate-600 text-sm leading-relaxed">
                 在右侧输入你的创意提示，让AI为你创造独特的艺术作品
               </p>

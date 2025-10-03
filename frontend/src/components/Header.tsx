@@ -1,11 +1,11 @@
-import React from 'react';
-import { Zap } from 'lucide-react';
+import React from "react";
+import { Zap } from "lucide-react";
 
 interface HeaderProps {
   siteName?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ siteName = 'Video Creation' }) => {
+const Header: React.FC<HeaderProps> = ({ siteName = "Video Creation" }) => {
   return (
     <header className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 border-b border-purple-500/30">
       {/* 背景层 */}
@@ -22,7 +22,11 @@ const Header: React.FC<HeaderProps> = ({ siteName = 'Video Creation' }) => {
           {/* Logo区域 */}
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-all duration-300 p-1">
-              <img src="/logo.svg" alt="Video Creation Logo" className="w-full h-full drop-shadow-sm" />
+              <img
+                src="/logo.svg"
+                alt="Video Creation Logo"
+                className="w-full h-full drop-shadow-sm"
+              />
             </div>
             {/* 彩虹发光效果 */}
             <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400/40 via-purple-400/40 to-pink-400/40 blur-lg group-hover:blur-xl transition-all duration-300 -z-10"></div>
@@ -36,11 +40,12 @@ const Header: React.FC<HeaderProps> = ({ siteName = 'Video Creation' }) => {
             </h1>
             <div className="flex items-center mt-0.5">
               <Zap className="w-3 h-3 text-cyan-400 mr-1 drop-shadow-sm" />
-              <span className="text-xs text-cyan-100 font-medium">AI-Powered Creation</span>
+              <span className="text-xs text-cyan-100 font-medium">
+                AI-Powered Creation
+              </span>
             </div>
           </div>
         </div>
-
       </div>
 
       {/* 底部分割线 */}
