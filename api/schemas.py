@@ -1,8 +1,9 @@
 """
 Pydantic models for API requests and responses.
 """
-from typing import Any, Optional, Generic, TypeVar, List
+from typing import Any, Optional, Generic, TypeVar, List, Dict
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 # Generic type for response data
 T = TypeVar('T')
@@ -197,8 +198,13 @@ class EpisodeMemory(BaseModel):
     script_name: str
     episode_number: int
     plot_summary: str
-    options: Optional[str] = None
-    created_at: Optional[str] = None
+    options: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
 
 # ==================== Typed Response Models ====================
 
