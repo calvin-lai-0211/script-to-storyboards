@@ -8,6 +8,8 @@ import {
   Camera,
   Image as ImageIcon,
   RefreshCw,
+  ChevronsDown,
+  ChevronsRight,
 } from "lucide-react";
 import { API_ENDPOINTS, apiCall } from "@api";
 import { useStoryboardStore, Scene } from "@store/useStoryboardStore";
@@ -95,7 +97,27 @@ const StoryboardTab: React.FC<StoryboardTabProps> = ({ scriptKey }) => {
         });
       });
 
+      // 对数据进行排序
       const scenesData = Array.from(scenesMap.values());
+
+      // 对每个场景的镜头排序
+      scenesData.forEach(scene => {
+        scene.shots.sort((a, b) => {
+          const numA = parseFloat(a.shot_number) || 0;
+          const numB = parseFloat(b.shot_number) || 0;
+          return numA - numB;
+        });
+
+        // 对每个镜头的子镜头排序
+        scene.shots.forEach(shot => {
+          shot.subShots.sort((a, b) => {
+            const numA = parseFloat(a.sub_shot_number) || 0;
+            const numB = parseFloat(b.sub_shot_number) || 0;
+            return numA - numB;
+          });
+        });
+      });
+
       setScenes(scenesData);
       setStoryboard(scriptKey, scenesData);
     } catch (err) {
@@ -138,6 +160,34 @@ const StoryboardTab: React.FC<StoryboardTabProps> = ({ scriptKey }) => {
     fetchStoryboards(abortController.signal);
   };
 
+  const toggleAllScenes = () => {
+    if (expandedScenes.size === scenes.length) {
+      // 全部展开 -> 全部折叠
+      setExpandedScenes(new Set());
+    } else {
+      // 部分展开或全部折叠 -> 全部展开
+      setExpandedScenes(new Set(scenes.map(s => s.scene_number)));
+    }
+  };
+
+  const toggleAllShotsInScene = (sceneNumber: string) => {
+    const scene = scenes.find(s => s.scene_number === sceneNumber);
+    if (!scene) return;
+
+    const shotKeys = scene.shots.map(shot => `${sceneNumber}-${shot.shot_number}`);
+    const allExpanded = shotKeys.every(key => expandedShots.has(key));
+
+    const newExpanded = new Set(expandedShots);
+    if (allExpanded) {
+      // 全部展开 -> 全部折叠
+      shotKeys.forEach(key => newExpanded.delete(key));
+    } else {
+      // 部分展开或全部折叠 -> 全部展开
+      shotKeys.forEach(key => newExpanded.add(key));
+    }
+    setExpandedShots(newExpanded);
+  };
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -175,12 +225,26 @@ const StoryboardTab: React.FC<StoryboardTabProps> = ({ scriptKey }) => {
     <div className="h-full flex flex-col">
       {/* 工具栏 */}
       <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Film className="w-5 h-5 text-blue-500" />
-          <span className="font-medium text-slate-800">分镜脚本</span>
-          <span className="text-sm text-slate-500">
-            共 {scenes.length} 个场景
-          </span>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Film className="w-5 h-5 text-blue-500" />
+            <span className="font-medium text-slate-800">分镜脚本</span>
+            <span className="text-sm text-slate-500">
+              共 {scenes.length} 个场景
+            </span>
+          </div>
+          <button
+            onClick={toggleAllScenes}
+            className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            title={expandedScenes.size === scenes.length ? "折叠所有场景" : "展开所有场景"}
+          >
+            {expandedScenes.size === scenes.length ? (
+              <ChevronsRight className="w-4 h-4" />
+            ) : (
+              <ChevronsDown className="w-4 h-4" />
+            )}
+            <span>{expandedScenes.size === scenes.length ? "全部折叠" : "全部展开"}</span>
+          </button>
         </div>
         <button
           onClick={handleRefresh}
@@ -233,6 +297,24 @@ const StoryboardTab: React.FC<StoryboardTabProps> = ({ scriptKey }) => {
                 {/* 镜头列表 */}
                 {sceneExpanded && (
                   <div className="border-t border-slate-200">
+                    {/* 镜头全展开/折叠按钮 */}
+                    <div className="px-6 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                      <span className="text-sm text-slate-600">
+                        {scene.shots.length} 个镜头
+                      </span>
+                      <button
+                        onClick={() => toggleAllShotsInScene(scene.scene_number)}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded transition-colors"
+                        title={scene.shots.every(shot => expandedShots.has(`${scene.scene_number}-${shot.shot_number}`)) ? "折叠所有镜头" : "展开所有镜头"}
+                      >
+                        {scene.shots.every(shot => expandedShots.has(`${scene.scene_number}-${shot.shot_number}`)) ? (
+                          <ChevronsRight className="w-3 h-3" />
+                        ) : (
+                          <ChevronsDown className="w-3 h-3" />
+                        )}
+                        <span>{scene.shots.every(shot => expandedShots.has(`${scene.scene_number}-${shot.shot_number}`)) ? "全部折叠" : "全部展开"}</span>
+                      </button>
+                    </div>
                     {scene.shots.map((shot) => {
                       const shotKey = `${scene.scene_number}-${shot.shot_number}`;
                       const shotExpanded = expandedShots.has(shotKey);
