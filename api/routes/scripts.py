@@ -11,7 +11,11 @@ from fastapi import APIRouter, HTTPException, Depends, Response
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
-from api.models import ApiResponse
+from api.schemas import (
+    ApiResponse,
+    ScriptListResponse,
+    ScriptDetailResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +31,7 @@ def get_db():
     finally:
         pass
 
-@router.get("/scripts")
+@router.get("/scripts", response_model=ScriptListResponse)
 async def get_all_scripts(response: Response, db: Database = Depends(get_db)):
     """
     Get all scripts with metadata (title, episode_num, author, creation_year).
@@ -49,7 +53,7 @@ async def get_all_scripts(response: Response, db: Database = Depends(get_db)):
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/scripts/{key}")
+@router.get("/scripts/{key}", response_model=ScriptDetailResponse)
 async def get_script(key: str, db: Database = Depends(get_db)):
     """
     Get script content by key.

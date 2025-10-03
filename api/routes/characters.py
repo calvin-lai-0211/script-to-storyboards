@@ -13,7 +13,15 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from utils.database import Database
 from procedure.generate_character_portraits import CharacterPortraitGenerator
 from models.jimeng_t2i_RH import JimengT2IRH
-from api.models import GenerateDefinitionsRequest, GenerateImageRequest, ApiResponse
+from api.schemas import (
+    GenerateDefinitionsRequest,
+    GenerateImageRequest,
+    ApiResponse,
+    CharacterListResponse,
+    CharactersByKeyResponse,
+    CharacterDetailResponse,
+    GenerateImageResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +62,7 @@ async def generate_characters(request: GenerateDefinitionsRequest, response: Res
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/characters/all")
+@router.get("/characters/all", response_model=CharacterListResponse)
 async def get_all_characters(db: Database = Depends(get_db)):
     """
     Get all characters from all scripts.
@@ -89,7 +97,7 @@ async def get_all_characters(db: Database = Depends(get_db)):
         logger.error(f"Error getting all characters: {e}")
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/characters/{key}")
+@router.get("/characters/{key}", response_model=CharactersByKeyResponse)
 async def get_characters(key: str, db: Database = Depends(get_db)):
     """
     Get all characters by script key using JOIN query.
@@ -143,7 +151,7 @@ async def get_characters(key: str, db: Database = Depends(get_db)):
         logger.error(f"Error getting characters: {e}")
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/character/{character_id}")
+@router.get("/character/{character_id}", response_model=CharacterDetailResponse)
 async def get_character(character_id: int, db: Database = Depends(get_db)):
     """
     Get character details by ID.
@@ -216,7 +224,7 @@ async def update_character_prompt(character_id: int, request: dict, response: Re
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.post("/character/{character_id}/generate-image")
+@router.post("/character/{character_id}/generate-image", response_model=GenerateImageResponse)
 async def generate_character_image(character_id: int, request: GenerateImageRequest, response: Response, db: Database = Depends(get_db)):
     """
     Generate character portrait image using Jimeng text-to-image.

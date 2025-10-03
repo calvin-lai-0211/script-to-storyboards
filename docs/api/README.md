@@ -4,6 +4,8 @@
 
 Script-to-Storyboards API 提供了完整的 RESTful API 接口，用于管理剧本、分镜、角色、场景等数据。
 
+**✨ 新功能**: 所有 API 端点现在都包含完整的 TypeScript 类型定义，Swagger/ReDoc 文档中可以查看详细的响应数据结构。
+
 ## API 文档访问
 
 ### Swagger UI (推荐)
@@ -15,12 +17,13 @@ http://localhost:8001/docs
 ```
 
 这是 FastAPI 自动生成的交互式 API 文档，提供：
-- 完整的 API 端点列表
-- 请求/响应示例
-- 在线测试功能
-- Schema 定义
+- ✅ 完整的 API 端点列表
+- ✅ **详细的 TypeScript 类型定义**（不再显示 "any"）
+- ✅ 请求/响应示例
+- ✅ 在线测试功能
+- ✅ Schema 定义（包含所有字段类型）
 
-### ReDoc
+### ReDoc (更清晰的类型展示)
 
 访问：
 
@@ -28,7 +31,7 @@ http://localhost:8001/docs
 http://localhost:8001/redoc
 ```
 
-更美观的文档界面，适合阅读。
+更美观的文档界面，适合阅读。**推荐用于查看完整的类型定义**。
 
 ## 基础信息
 
@@ -41,15 +44,30 @@ http://localhost:8001/redoc
 
 ### 响应格式
 
-所有 API 响应都遵循统一格式：
+**所有 API 响应都遵循统一的包装格式**：
+
+```typescript
+interface ApiResponse<T> {
+  code: number;        // 0 表示成功，非 0 表示错误
+  message: string;     // 消息描述（默认 "success"）
+  data: T | null;      // 实际数据，类型为 T（泛型）
+}
+```
+
+**示例**:
 
 ```json
 {
-  "code": 0,           // 0 表示成功，非 0 表示错误
-  "message": "success", // 消息描述
-  "data": {}           // 实际数据
+  "code": 0,
+  "message": "success",
+  "data": {
+    "characters": [...],
+    "count": 10
+  }
 }
 ```
+
+**注意**: `data` 字段的类型因端点而异，详见各端点的具体类型定义。
 
 ### 错误码
 
@@ -70,7 +88,30 @@ http://localhost:8001/redoc
 GET /api/scripts
 ```
 
-**响应**:
+**响应类型**: `ScriptListResponse`
+
+```typescript
+interface ScriptListResponse {
+  code: number;
+  message: string;
+  data: {
+    scripts: ScriptMetadata[];
+    count: number;
+  };
+}
+
+interface ScriptMetadata {
+  script_id: number | null;
+  key: string;
+  title: string;
+  episode_num: number;
+  author: string | null;
+  creation_year: number | null;
+  score: number | null;
+}
+```
+
+**响应示例**:
 ```json
 {
   "code": 0,
@@ -78,13 +119,16 @@ GET /api/scripts
   "data": {
     "scripts": [
       {
-        "key": "uuid-string",
-        "title": "剧本名",
+        "script_id": 1,
+        "key": "da4ef19d-5965-41c3-a971-f17d0ce06ef7",
+        "title": "天归（「西语版」） - Episode 1",
         "episode_num": 1,
-        "author": "作者",
-        "creation_year": 2024
+        "author": "张馨月(moon)",
+        "creation_year": 2025,
+        "score": null
       }
-    ]
+    ],
+    "count": 1
   }
 }
 ```
@@ -98,7 +142,22 @@ GET /api/scripts/{key}
 **参数**:
 - `key` (path): 剧本唯一标识符
 
-**响应**: 包含剧本完整内容（content）、角色列表（roles）、场景列表（sceneries）
+**响应类型**: `ScriptDetailResponse`
+
+```typescript
+interface ScriptDetail {
+  script_id: number | null;
+  key: string;
+  title: string;
+  episode_num: number;
+  content: string;           // 剧本完整内容
+  roles: string[] | null;    // 角色列表
+  sceneries: string[] | null; // 场景列表
+  author: string | null;
+  creation_year: number | null;
+  score: number | null;
+}
+```
 
 ### 2. 分镜 (Storyboards)
 
@@ -111,22 +170,41 @@ GET /api/storyboards/{key}
 **参数**:
 - `key` (path): 剧本唯一标识符
 
-**响应**: 分镜脚本的扁平化数据，包含场景、镜头、子镜头等层级信息
+**响应类型**: `StoryboardResponse`
 
-**数据结构**:
-- `scene_number`: 场景编号
-- `scene_description`: 场景描述
-- `shot_number`: 镜头编号
-- `shot_description`: 镜头描述
-- `sub_shot_number`: 子镜头编号
-- `camera_angle`: 镜头角度/景别
-- `characters`: 涉及角色列表
-- `scene_context`: 场景上下文列表
-- `key_props`: 关键道具列表
-- `image_prompt`: 图像生成提示词
-- `dialogue_sound`: 对白/音效
-- `duration_seconds`: 时长（秒）
-- `notes`: 导演备注
+```typescript
+interface StoryboardResponse {
+  code: number;
+  message: string;
+  data: {
+    key: string;
+    drama_name: string;
+    episode_number: number;
+    storyboards: FlatStoryboard[];  // 扁平化的分镜数据
+    count: number;
+  };
+}
+
+interface FlatStoryboard {
+  id: number;
+  scene_number: string;           // 场景编号
+  scene_description: string;      // 场景描述
+  shot_number: string;            // 镜头编号
+  shot_description: string;       // 镜头描述
+  sub_shot_number: string;        // 子镜头编号
+  camera_angle: string;           // 镜头角度/景别
+  characters: string[];           // 涉及角色列表
+  scene_context: string[];        // 场景上下文列表
+  key_props: string[];            // 关键道具列表
+  image_prompt: string;           // 图像生成提示词
+  video_prompt: string | null;    // 视频生成提示词
+  dialogue_sound: string;         // 对白/音效
+  duration_seconds: number;       // 时长（秒）
+  notes: string;                  // 导演备注
+}
+```
+
+**注意**: 前端会将扁平的 `storyboards` 数组转换为层级结构（Scene → Shot → SubShot）。
 
 ### 3. 角色 (Characters)
 
@@ -136,10 +214,51 @@ GET /api/storyboards/{key}
 GET /api/characters/all
 ```
 
+**响应类型**: `CharacterListResponse`
+
+```typescript
+interface CharacterListResponse {
+  code: number;
+  message: string;
+  data: {
+    characters: CharacterPortrait[];
+    count: number;
+  };
+}
+
+interface CharacterPortrait {
+  id: number;
+  drama_name: string;
+  episode_number: number;
+  character_name: string;
+  image_prompt: string | null;
+  reflection: string | null;
+  image_url: string | null;
+  is_key_character: boolean;
+  character_brief: string | null;
+}
+```
+
 #### 获取指定剧集的角色
 
 ```http
 GET /api/characters/{key}
+```
+
+**响应类型**: `CharactersByKeyResponse`
+
+```typescript
+interface CharactersByKeyResponse {
+  code: number;
+  message: string;
+  data: {
+    key: string;
+    drama_name: string;
+    episode_number: number;
+    characters: CharacterPortrait[];
+    count: number;
+  };
+}
 ```
 
 #### 获取单个角色详情
@@ -147,6 +266,8 @@ GET /api/characters/{key}
 ```http
 GET /api/character/{id}
 ```
+
+**响应类型**: `CharacterDetailResponse` （数据结构与 `CharacterPortrait` 相同）
 
 #### 更新角色提示词
 
@@ -206,18 +327,37 @@ GET /api/props/all
 GET /api/memory/{key}
 ```
 
-**响应**:
+**响应类型**: `MemoryResponse`
+
+```typescript
+interface MemoryResponse {
+  code: number;
+  message: string;
+  data: EpisodeMemory;
+}
+
+interface EpisodeMemory {
+  id: number;
+  script_name: string;
+  episode_number: number;
+  plot_summary: string;      // 剧情摘要文本
+  options: string | null;
+  created_at: string | null; // ISO 8601 格式
+}
+```
+
+**响应示例**:
 ```json
 {
   "code": 0,
   "message": "success",
   "data": {
     "id": 1,
-    "script_name": "剧本名",
+    "script_name": "天归（「西语版」）",
     "episode_number": 1,
     "plot_summary": "剧情摘要文本...",
-    "options": {},
-    "created_at": "2024-01-01T00:00:00"
+    "options": null,
+    "created_at": "2025-01-01T00:00:00"
   }
 }
 ```

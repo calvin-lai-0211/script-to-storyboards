@@ -12,7 +12,13 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.generate_scene_definitions import SceneDefinitionGenerator
-from api.models import GenerateDefinitionsRequest, StatusResponse, ApiResponse
+from api.schemas import (
+    GenerateDefinitionsRequest,
+    StatusResponse,
+    ApiResponse,
+    SceneListResponse,
+    ScenesByKeyResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +59,7 @@ async def generate_scenes(request: GenerateDefinitionsRequest, response: Respons
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/scenes/all")
+@router.get("/scenes/all", response_model=SceneListResponse)
 async def get_all_scenes(db: Database = Depends(get_db)):
     """
     Get all scenes from all scripts.
@@ -123,7 +129,7 @@ async def get_scene(scene_id: int, db: Database = Depends(get_db)):
         logger.error(f"Error getting scene: {e}")
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/scenes/{key}")
+@router.get("/scenes/{key}", response_model=ScenesByKeyResponse)
 async def get_scenes(key: str, db: Database = Depends(get_db)):
     """
     Get all scenes by script key using JOIN query.

@@ -12,7 +12,12 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.make_storyboards import MakeStoryboardsText
-from api.models import GenerateStoryboardRequest, ApiResponse
+from api.schemas import (
+    GenerateStoryboardRequest,
+    ApiResponse,
+    StoryboardResponse,
+    MemoryResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +33,7 @@ def get_db():
     finally:
         pass
 
-@router.get("/storyboards/{key}")
+@router.get("/storyboards/{key}", response_model=StoryboardResponse)
 async def get_storyboards(key: str, db: Database = Depends(get_db)):
     """
     Get all storyboard data for a specific script by key.
@@ -91,7 +96,7 @@ async def get_storyboards(key: str, db: Database = Depends(get_db)):
         logger.error(f"Error getting storyboards: {e}")
         return ApiResponse.error(code=500, message=str(e))
 
-@router.get("/memory/{key}")
+@router.get("/memory/{key}", response_model=MemoryResponse)
 async def get_episode_memory(key: str, db: Database = Depends(get_db)):
     """
     Get episode memory/summary by script key.

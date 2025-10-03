@@ -12,7 +12,12 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.generate_key_prop_definitions import KeyPropDefinitionGenerator
-from api.models import GenerateDefinitionsRequest, StatusResponse, ApiResponse
+from api.schemas import (
+    GenerateDefinitionsRequest,
+    StatusResponse,
+    ApiResponse,
+    PropListResponse
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +33,7 @@ def get_db():
     finally:
         pass
 
-@router.get("/props/all")
+@router.get("/props/all", response_model=PropListResponse)
 async def get_all_props(db: Database = Depends(get_db)):
     """
     Get all props from all scripts.
