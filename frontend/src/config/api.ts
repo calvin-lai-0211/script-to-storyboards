@@ -27,12 +27,14 @@ export const API_ENDPOINTS = {
 
   // Scenes endpoints
   getAllScenes: () => `${API_BASE_URL}/api/scenes/all`,
+  getScene: (id: string | number) => `${API_BASE_URL}/api/scene/${id}`,
   getScenes: (key: string) =>
     `${API_BASE_URL}/api/scenes/${encodeURIComponent(key)}`,
   generateScenes: () => `${API_BASE_URL}/api/scenes/generate`,
 
   // Props endpoints
   getAllProps: () => `${API_BASE_URL}/api/props/all`,
+  getProp: (id: string | number) => `${API_BASE_URL}/api/prop/${id}`,
   generateProps: () => `${API_BASE_URL}/api/props/generate`,
 
   // Scripts endpoints

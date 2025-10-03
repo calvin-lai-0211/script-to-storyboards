@@ -1,6 +1,7 @@
 import React from "react";
 import { useSearchParams, useParams, Navigate } from "react-router-dom";
 import { FileText, Film, Brain, Settings } from "lucide-react";
+import BackButton from "../components/BackButton";
 import ScriptTab from "../components/tabs/ScriptTab";
 import StoryboardTab from "../components/tabs/StoryboardTab";
 import MemoryTab from "../components/tabs/MemoryTab";
@@ -117,11 +118,14 @@ const Workspace: React.FC = () => {
     <div className="h-full flex flex-col">
       {/* 顶部标题栏 */}
       <div className="bg-white border-b border-slate-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-slate-800">
-          {currentEpisode
-            ? `${currentEpisode.title} - 第${currentEpisode.episode_num}集`
-            : "加载中..."}
-        </h1>
+        <div className="flex items-center space-x-4">
+          <BackButton to="/" label="返回剧集列表" />
+          <h1 className="text-2xl font-bold text-slate-800">
+            {currentEpisode
+              ? `${currentEpisode.title} - 第${currentEpisode.episode_num}集`
+              : "加载中..."}
+          </h1>
+        </div>
       </div>
 
       {/* Tab 导航 */}

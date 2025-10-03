@@ -33,6 +33,43 @@ def get_db():
     finally:
         pass
 
+@router.get("/prop/{prop_id}")
+async def get_prop(prop_id: int, db: Database = Depends(get_db)):
+    """
+    Get prop details by ID.
+    """
+    try:
+        query = """
+            SELECT id, drama_name, episode_number, prop_name,
+                   image_prompt, reflection, version, image_url,
+                   shots_appeared, is_key_prop, prop_brief, created_at
+            FROM key_prop_definitions
+            WHERE id = %s
+        """
+        results = db.fetch_query(query, (prop_id,))
+
+        if not results:
+            return ApiResponse.error(code=404, message="未找到该道具")
+
+        prop = results[0]
+        return ApiResponse.success(data={
+            "id": prop["id"],
+            "drama_name": prop["drama_name"],
+            "episode_number": prop["episode_number"],
+            "prop_name": prop["prop_name"],
+            "image_prompt": prop["image_prompt"],
+            "reflection": prop["reflection"],
+            "version": prop["version"],
+            "image_url": prop["image_url"],
+            "shots_appeared": prop["shots_appeared"],
+            "is_key_prop": prop["is_key_prop"],
+            "prop_brief": prop["prop_brief"],
+            "created_at": prop["created_at"].isoformat() if prop["created_at"] else None
+        })
+    except Exception as e:
+        logger.error(f"Error getting prop {prop_id}: {e}")
+        return ApiResponse.error(code=500, message=str(e))
+
 @router.get("/props/all", response_model=PropListResponse)
 async def get_all_props(db: Database = Depends(get_db)):
     """

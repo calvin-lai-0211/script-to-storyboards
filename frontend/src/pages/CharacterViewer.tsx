@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   User,
   Sparkles,
@@ -7,9 +7,9 @@ import {
   Save,
   Edit,
   Wand2,
-  ArrowLeft,
 } from "lucide-react";
 import ImageDisplay from "../components/ImageDisplay";
+import BackButton from "../components/BackButton";
 import { API_ENDPOINTS, apiCall } from "@api";
 import { useCharacterStore } from "@store/useCharacterStore";
 
@@ -22,7 +22,6 @@ interface CharacterData {
 
 const CharacterViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { currentCharacter } = useCharacterStore();
   const [characterData, setCharacterData] = useState<CharacterData | null>(
     null,
@@ -119,14 +118,10 @@ const CharacterViewer: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* 返回按钮 */}
-      <button
-        onClick={() => navigate("/characters")}
-        className="absolute top-4 left-4 z-10 flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200"
-      >
-        <ArrowLeft className="w-5 h-5 text-slate-700" />
-        <span className="text-slate-700 font-medium">返回列表</span>
-      </button>
+      {/* 返回按钮 - 固定在左上角 */}
+      <div className="absolute top-6 left-6 z-10">
+        <BackButton to="/characters" label="返回角色列表" />
+      </div>
 
       <div className="relative flex flex-col items-center justify-start py-8 px-6">
         {/* 页面标题区域 */}

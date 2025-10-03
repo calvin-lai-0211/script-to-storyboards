@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
 
   // Props endpoints
   getAllProps: () => `${API_BASE_URL}/api/props/all`,
+  getProp: (id: string | number) => `${API_BASE_URL}/api/prop/${id}`,
   generateProps: () => `${API_BASE_URL}/api/props/generate`,
 
   // Scripts endpoints

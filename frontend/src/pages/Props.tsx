@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Package, Loader2, AlertCircle, Star, RefreshCw } from "lucide-react";
 import { API_ENDPOINTS, apiCall } from "@api";
 import { usePropStore } from "@store/usePropStore";
@@ -19,7 +20,8 @@ interface Prop {
 }
 
 const Props: React.FC = () => {
-  const { allProps, setAllProps } = usePropStore();
+  const navigate = useNavigate();
+  const { allProps, setAllProps, setCurrentProp } = usePropStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +75,11 @@ const Props: React.FC = () => {
 
   const handleRefresh = () => {
     fetchProps();
+  };
+
+  const handlePropClick = (prop: Prop) => {
+    setCurrentProp(prop);
+    navigate(`/prop/${prop.id}`);
   };
 
   if (loading) {
@@ -133,7 +140,8 @@ const Props: React.FC = () => {
           {sortedProps.map((prop) => (
             <div
               key={prop.id}
-              className="bg-white rounded-xl border border-slate-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 overflow-hidden"
+              onClick={() => handlePropClick(prop)}
+              className="group cursor-pointer bg-white rounded-xl border border-slate-200 hover:border-purple-400 hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
               {prop.image_url ? (
                 <img

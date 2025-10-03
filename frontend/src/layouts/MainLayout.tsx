@@ -117,7 +117,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </nav>
 
         {/* 底部按钮区域 */}
-        <div className="border-t border-slate-800 p-2">
+        <div className="border-t border-slate-800 cursor-pointer">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="w-full p-2.5 hover:bg-slate-800 rounded-lg transition-colors duration-200 flex items-center justify-center"
@@ -133,7 +133,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </aside>
 
       {/* 主内容区 */}
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 };
