@@ -28,6 +28,13 @@ data:
             add_header Content-Type text/plain;
         }
 
+        # MkDocs documentation - serve static files directly
+        location /docs {
+            alias /usr/share/nginx/html/docs;
+            index index.html;
+            try_files $uri $uri/ $uri/index.html =404;
+        }
+
         # SPA fallback - all routes go to index.html
         # /api 路径由 Ingress 直接路由到 API service，不会到达这里
         location / {

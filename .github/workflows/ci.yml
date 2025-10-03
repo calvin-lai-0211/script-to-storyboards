@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# 并发控制：同一 PR 的多次 push 会取消之前的运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend-checks:
     name: Frontend Tests & Checks

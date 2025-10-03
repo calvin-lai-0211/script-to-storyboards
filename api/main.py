@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Script-to-Storyboards API",
     description="Automated storyboard generation from text scripts",
-    version="0.1.0"
+    version="0.1.0",
+    docs_url="/api/docs",      # Swagger UI 移动到 /api/docs
+    redoc_url="/api/redoc"     # ReDoc 移动到 /api/redoc
 )
 
 # CORS middleware

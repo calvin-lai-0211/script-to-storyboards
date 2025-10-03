@@ -31,8 +31,8 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: ../../frontend
-      dockerfile: ../docker/dockerfiles/frontend.Dockerfile
+      context: ../../  # 改为项目根目录，以便访问 docs/ 和 mkdocs.yml
+      dockerfile: docker/dockerfiles/frontend.Dockerfile
       args:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL-http://localhost:8000}
     image: script-to-storyboards-frontend:latest

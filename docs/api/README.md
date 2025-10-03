@@ -319,7 +319,41 @@ GET /api/scene/{id}
 GET /api/props/all
 ```
 
-### 6. 剧集记忆 (Memory)
+### 6. 图片上传 (Upload)
+
+#### 上传图片
+
+```http
+POST /api/upload-image
+Content-Type: multipart/form-data
+
+file: <图片文件>
+```
+
+**响应类型**: `UploadImageResponse`
+
+```typescript
+interface UploadImageResponse {
+  code: number;
+  message: string;
+  data: {
+    url: string;  // 上传后的图片 URL
+  };
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "url": "http://example.com/images/uploaded-image.jpg"
+  }
+}
+```
+
+### 7. 剧集记忆 (Memory)
 
 #### 获取剧集摘要
 
@@ -448,4 +482,4 @@ app.add_middleware(
 - [ ] 添加请求限流
 - [ ] 添加 API 版本控制
 - [ ] 添加 WebSocket 支持（实时更新）
-- [ ] 添加文件上传接口
+- [x] ~~添加文件上传接口~~ (已完成)

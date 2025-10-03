@@ -1,22 +1,8 @@
-# Docker 部署方式
+# Docker 部署
 
-本目录包含两种 Docker 部署方式，根据需求选择：
+> 📚 **完整文档**: 查看 [docs/DOCKER.md](../docs/DOCKER.md) 获取详细部署指南
 
-## ⚡ 快速命令
-
-```bash
-# 🔄 更新并重新部署（最常用）
-./docker/local-run.sh --build
-
-# 🚀 首次部署
-./docker/local-run.sh
-
-# 📊 查看日志
-docker-compose -f docker/compose/docker-compose.yml logs -f
-
-# 🛑 停止服务
-docker-compose -f docker/compose/docker-compose.yml down
-```
+本目录包含 Docker Compose 和 Kubernetes 两种部署方式。
 
 ## 📁 目录结构
 
@@ -41,15 +27,21 @@ docker/
 适合：本地开发、快速测试
 
 ```bash
-# 方法 A: 使用便捷脚本
-./docker/up.sh
+# 🔄 更新并重新部署（最常用）
+./docker/local-run.sh --build
 
-# 方法 B: 进入 compose 目录
-cd docker/compose
-docker-compose up -d
+# 🚀 不加编译的部署（正常用不到）
+./docker/local-run.sh
+
+# 📊 查看日志
+docker-compose -f docker/compose/docker-compose.yml logs -f
+
+# 🛑 停止服务
+docker-compose -f docker/compose/docker-compose.yml down
 ```
 
 访问：
+
 - Frontend: http://localhost:8866
 - API: http://localhost:8000
 
@@ -57,7 +49,7 @@ docker-compose up -d
 
 ### 方式 2: Kubernetes (K3s)
 
-适合：生产部署、集群环境
+适合：生产部署、集群环境，本地如果有 k8s 的环境也可以用这个，选本地即可
 
 ```bash
 # 方法 A: 使用便捷脚本（交互式选择）
@@ -72,21 +64,29 @@ cd docker/k8s
 ./deploy-to-remote.sh
 ```
 
+运行在 80 端口。如果是在 mac os 上运行，需要加个 port-forward:
+
+```bash
+kubectl port-forward -n kube-system service/traefik 8080:80
+```
+
+这样就可以在本地的 8080 端口上访问。
+
 ---
 
 ## 🎯 选择指南
 
-| 场景 | 推荐方式 | 启动命令 |
-|------|---------|----------|
-| 本地开发测试 | Compose | `./docker/up.sh` |
-| Mac 上 K8s | K3d | `cd docker/k8s && ./local-deploy.sh` |
-| 远程服务器 | Remote K3s | `cd docker/k8s && ./deploy-to-remote.sh` |
+| 场景         | 推荐方式   | 启动命令                                 |
+| ------------ | ---------- | ---------------------------------------- |
+| 本地开发测试 | Compose    | `./docker/local-run.sh`                  |
+| Mac 上 K8s   | K3d        | `cd docker/k8s && ./local-deploy.sh`     |
+| 远程服务器   | Remote K3s | `cd docker/k8s && ./deploy-to-remote.sh` |
 
 ## 📦 便捷入口
 
 在 `docker/` 根目录提供的便捷脚本：
 
-- **`up.sh`** - 启动 Compose 服务
+- **`local-run.sh`** - 启动 Compose 服务
 - **`deploy-k8s.sh`** - 部署到 K8s（交互式）
 
 ## 🔧 配置说明
@@ -100,14 +100,15 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ### 端口映射
 
-| 服务 | 容器端口 | 宿主端口 |
-|------|----------|----------|
-| API | 8000 | 8000 |
-| Frontend | 80 | 8866 |
+| 服务     | 容器端口 | 宿主端口 |
+| -------- | -------- | -------- |
+| API      | 8000     | 8000     |
+| Frontend | 80       | 8866     |
 
 ### 数据卷（开发模式）
 
 开发时自动挂载：
+
 - `api/` → `/app/api`
 - `utils/` → `/app/utils`
 - `models/` → `/app/models`
@@ -117,15 +118,18 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ## 📚 完整文档
 
-- [Docker 部署指南](../docs/DOCKER.md)
-- [K8s 快速开始](../docs/QUICKSTART.md)
-- [远程部署指南](../docs/REMOTE-DEPLOY.md)
+- [Docker Compose 部署](../docs/DOCKER.md) - 详细的 Docker Compose 配置和使用
+- [K8s 快速开始](../docs/k8s/QUICKSTART.md) - 本地 K3s/K3d 部署
+- [K8s 远程部署](../docs/k8s/REMOTE-DEPLOY.md) - 远程服务器部署
+- [Ingress 配置](../docs/k8s/INGRESS-GUIDE.md) - 外部访问配置
+- [API 路由](../docs/k8s/API-ROUTING.md) - Nginx 路由配置
 
 ## ❓ 常见问题
 
 ### Q: 如何切换部署方式？
 
 停止当前方式后直接启动新方式即可：
+
 ```bash
 # 停止 Compose
 docker-compose down
@@ -171,5 +175,6 @@ cd docker/k8s
 ```
 
 **常见错误：**
+
 - ❌ 只运行 `./docker/local-run.sh` → 不会更新镜像
 - ✅ 运行 `./docker/local-run.sh --build` → 重新构建镜像

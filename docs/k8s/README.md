@@ -101,6 +101,20 @@ kubectl apply -f k8s/ingress.yaml
 
 ## Management Commands
 
+### Quick Update Scripts
+
+快速更新单个服务（推荐用于开发）：
+
+```bash
+# 快速更新 API（重建镜像 → 导入 → 重启）
+./docker/k8s/update-api.sh
+
+# 快速更新 Frontend（重建镜像（含文档） → 导入 → 重启）
+./docker/k8s/update-frontend.sh
+```
+
+### 常用命令
+
 ```bash
 # View pods
 kubectl get pods
