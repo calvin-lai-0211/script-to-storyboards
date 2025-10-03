@@ -92,6 +92,27 @@ class GenerateImageData(BaseModel):
     image_url: str
     local_path: Optional[str] = None
 
+class GeneratePropImageData(BaseModel):
+    """Response data for prop image generation"""
+    prop_id: int
+    image_url: str
+    local_path: Optional[str] = None
+
+class PropDetailData(BaseModel):
+    """Response data for single prop detail"""
+    id: int
+    drama_name: str
+    episode_number: int
+    prop_name: str
+    image_prompt: Optional[str] = None
+    reflection: Optional[str] = None
+    version: Optional[str] = None
+    image_url: Optional[str] = None
+    shots_appeared: Optional[List[str]] = None
+    is_key_prop: Optional[bool] = None
+    prop_brief: Optional[str] = None
+    created_at: Optional[str] = None
+
 class SceneDefinition(BaseModel):
     """Scene definition data structure"""
     id: int
@@ -222,6 +243,14 @@ class CharacterDetailResponse(ApiResponse[CharacterDetailData]):
 
 class GenerateImageResponse(ApiResponse[GenerateImageData]):
     """Typed response for image generation"""
+    pass
+
+class GeneratePropImageResponse(ApiResponse[GeneratePropImageData]):
+    """Typed response for prop image generation"""
+    pass
+
+class PropDetailResponse(ApiResponse[PropDetailData]):
+    """Typed response for prop detail"""
     pass
 
 class SceneListResponse(ApiResponse[SceneListData]):

@@ -22,7 +22,7 @@ if [ -f "frontend/.env.k8s.local" ]; then
 fi
 
 echo "Building with VITE_API_BASE_URL=${VITE_API_BASE_URL}..."
-docker-compose -f docker/compose/docker-compose.yml build frontend
+docker-compose -f docker/docker-compose.yml build frontend
 
 # 2. Import to k3d/k3s
 echo -e "${YELLOW}📥 Step 2/3: Importing to cluster...${NC}"

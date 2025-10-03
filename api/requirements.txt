@@ -6,3 +6,4 @@ requests
 Pillow
 boto3
 python-multipart
+redis>=5.0.0

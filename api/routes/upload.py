@@ -10,9 +10,10 @@ import uuid
 from io import BytesIO
 from typing import Optional
 
-from fastapi import APIRouter, File, Query, Request, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
 
 from utils.upload import R2Uploader
+from api.middleware.auth import require_auth, UserPrincipal
 from api.schemas import ApiResponse
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ async def upload_image(
     folder: Optional[str] = Query("", description="Optional folder path in R2"),
     filename: Optional[str] = Query(None, description="Custom filename (optional)"),
     file: Optional[UploadFile] = File(None, description="File for type=file"),
+    user: UserPrincipal = Depends(require_auth),
 ):
     """
     Handle image uploads via file, Base64, or remote URL input.

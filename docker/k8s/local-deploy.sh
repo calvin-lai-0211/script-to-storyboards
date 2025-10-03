@@ -43,7 +43,7 @@ fi
 
 # Build Docker images
 echo "Building Docker images with VITE_API_BASE_URL=${VITE_API_BASE_URL}..."
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # Import images to k3s/k3d
 echo -e "${YELLOW}📥 Importing images to cluster...${NC}"
@@ -83,6 +83,9 @@ echo -e "${YELLOW}📋 Applying Kubernetes manifests...${NC}"
 
 # Apply ConfigMap first
 kubectl apply -f docker/k8s/nginx-configmap.yaml
+
+# Apply Redis deployment
+kubectl apply -f docker/k8s/redis-deployment.yaml
 
 # Apply deployments
 kubectl apply -f docker/k8s/api-deployment.yaml

@@ -48,18 +48,24 @@
 
 ## 快速导航
 
-### 开发文档
+### 🚀 快速开始
+
+- **[开发入门指南](dev/getting-started.md)** - 本地开发、Docker、K8s 等各种开发模式完整教程
+- **[Git Hooks 和 CI/CD](dev/git-hooks-and-ci.md)** - 代码提交规范和自动化流程
+
+### 📚 开发文档
 
 - [API 文档](api/README.md) - FastAPI 接口完整说明，包含 TypeScript 类型定义
-- [前端架构](frontend/architecture.md) - React 组件结构和状态管理
+- [前端文档](frontend/README.md) - React 前端完整技术文档（组件、状态、样式、测试等）
 
-### 部署文档
+### 🔐 业务功能
 
-- [Docker 部署](DOCKER.md) - 本地开发和测试部署
-- [K8s 快速开始](k8s/QUICKSTART.md) - Kubernetes 生产部署
-- [远程部署](k8s/REMOTE-DEPLOY.md) - 一键部署到远程 K3s 服务器
-- [Ingress 配置](k8s/INGRESS-GUIDE.md) - 配置外部访问
-- [API 路由](k8s/API-ROUTING.md) - Nginx 路由配置
+- [Google OAuth 登录](dev/google-oauth-authentication.md) - Google 登录配置和集成指南
+
+### 🐳 部署文档
+
+- [Kubernetes 部署](k8s/README.md) - K8s 部署完整指南（环境搭建、本地部署、远程部署、运维、故障排查）
+- [Docker Compose 部署](../docker/docker-compose.md) - 本地容器化部署
 
 ## 快速开始
 

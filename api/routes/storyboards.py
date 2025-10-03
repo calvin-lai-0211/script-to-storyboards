@@ -18,6 +18,7 @@ from api.schemas import (
     StoryboardResponse,
     MemoryResponse
 )
+from api.middleware.auth import require_auth, UserPrincipal
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,11 @@ def get_db():
         pass
 
 @router.get("/storyboards/{key}", response_model=StoryboardResponse)
-async def get_storyboards(key: str, db: Database = Depends(get_db)):
+async def get_storyboards(
+    key: str,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
     """
     Get all storyboard data for a specific script by key.
     Uses JOIN to query storyboards directly by episode_number.
@@ -97,7 +102,11 @@ async def get_storyboards(key: str, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/memory/{key}", response_model=MemoryResponse)
-async def get_episode_memory(key: str, db: Database = Depends(get_db)):
+async def get_episode_memory(
+    key: str,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
     """
     Get episode memory/summary by script key.
     Query by episode_number only.
@@ -134,7 +143,12 @@ async def get_episode_memory(key: str, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.post("/storyboard/generate")
-async def generate_storyboard(request: GenerateStoryboardRequest, response: Response, db: Database = Depends(get_db)):
+async def generate_storyboard(
+    request: GenerateStoryboardRequest,
+    response: Response,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
     """
     Generate storyboard from script.
     """
