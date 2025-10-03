@@ -9,8 +9,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import signal
 import logging
 
@@ -36,6 +37,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global exception handler for AuthenticationError
+@app.exception_handler(Exception)
+async def authentication_error_handler(request: Request, exc: Exception):
+    """Handle AuthenticationError and return HTTP 200 with error details in body."""
+    from api.middleware.auth import AuthenticationError
+
+    if isinstance(exc, AuthenticationError):
+        return JSONResponse(
+            status_code=200,
+            content={
+                "code": exc.code,
+                "message": exc.message,
+                "data": exc.data
+            },
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": "true",
+            }
+        )
+
+    # Re-raise other exceptions to be handled by FastAPI default handlers
+    raise exc
+
 # Signal handler for graceful shutdown
 def signal_handler(sig, frame):
     logger.info("Received shutdown signal, cleaning up...")
@@ -46,9 +70,11 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 # Import and register routers
-from api.routes import health, characters, storyboards, scenes, scripts, props, upload
+from api.routes import health, characters, storyboards, scenes, scripts, props, upload, user, google_auth
 
 app.include_router(health.router)
+app.include_router(user.router)
+app.include_router(google_auth.router)
 app.include_router(characters.router)
 app.include_router(storyboards.router)
 app.include_router(scenes.router)

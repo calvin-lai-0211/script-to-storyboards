@@ -25,13 +25,13 @@ spec:
             - name: PYTHONUNBUFFERED
               value: "1"
             - name: API_BASE_URL
-              value: "http://localhost:8080" # 本地开发环境 (k3d 映射 80→8080)
+              value: "https://videos.ethanlyn.com" # 生产环境 API 域名
             - name: REDIS_HOST
               value: "storyboard-redis"
             - name: REDIS_PORT
               value: "6379"
             - name: ENV
-              value: "development"
+              value: "production"
           resources:
             requests:
               memory: "512Mi"

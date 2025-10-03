@@ -84,6 +84,9 @@ echo -e "${YELLOW}📋 Applying Kubernetes manifests...${NC}"
 # Apply ConfigMap first
 kubectl apply -f docker/k8s/nginx-configmap.yaml
 
+# Apply Redis deployment
+kubectl apply -f docker/k8s/redis-deployment.yaml
+
 # Apply deployments
 kubectl apply -f docker/k8s/api-deployment.yaml
 kubectl apply -f docker/k8s/frontend-deployment.yaml

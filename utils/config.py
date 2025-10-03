@@ -65,6 +65,39 @@ R2_CONFIG = {
     "access_key_id": "398a4f0dd4a4b760eef50ce18ae69d93",
     "secret_access_key": "dc322d84ca5781b9f19768d7c42b062739057980c934fc7a60df6cff55127d80",
     "bucket_name": "ai-file",
-    "cdn_base_url": "https://cdn.gaudivideo.com",
+    "cdn_base_url": "https://cdn.xxx.com",
     "default_folder": "drama/upload"  # Default upload folder
+}
+
+# Google OAuth Configuration
+import os
+GOOGLE_OAUTH_CONFIG = {
+    "client_id": os.getenv("GOOGLE_CLIENT_ID", "853108816347-dloqr123n98ranv7k3jn76puirchqdvk.apps.googleusercontent.com"),
+    "client_secret": os.getenv("GOOGLE_CLIENT_SECRET", "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"),
+    "redirect_path": "/api/user/google/callback",  # 相对路径，域名在代码中拼接
+    "auth_url": "https://accounts.google.com/o/oauth2/auth",
+    "token_url": "https://oauth2.googleapis.com/token",
+    "user_info_url": "https://www.googleapis.com/oauth2/v3/userinfo"
+}
+
+# API Base URL Configuration
+# 优先级: 环境变量 > config 配置
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8001")
+
+# Redis Configuration
+REDIS_CONFIG = {
+    "host": os.getenv("REDIS_HOST", "localhost"),
+    "port": int(os.getenv("REDIS_PORT", 6379)),
+    "db": 0,
+    "decode_responses": True,
+    "socket_connect_timeout": 5,
+    "socket_timeout": 5,
+    "retry_on_timeout": True,
+    "max_connections": 50
+}
+
+# Session Configuration
+SESSION_CONFIG = {
+    "timeout": 2592000,  # 30 days in seconds
+    "key_prefix": "st_session:"
 }

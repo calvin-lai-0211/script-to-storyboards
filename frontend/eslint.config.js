@@ -5,7 +5,7 @@ import pluginReact from "eslint-plugin-react";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "server/", "**/*.config.js", "**/*.config.ts"] },
+  { ignores: ["dist", "node_modules", "server/", "coverage/", "**/*.config.js", "**/*.config.ts"] },
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx}"],
     languageOptions: {

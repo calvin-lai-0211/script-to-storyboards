@@ -28,6 +28,7 @@ class Database:
         self.create_scene_definitions_table()
         self.create_key_prop_definitions_table()
         self.create_episode_memory_table()
+        self.create_users_table()
 
     def _get_connection(self):
         return psycopg2.connect(**self.db_config)
@@ -938,6 +939,45 @@ class Database:
             print(f"Successfully cleared records from {table_name} for {drama_name}.")
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error clearing records from {table_name}: {error}")
+            if conn:
+                conn.rollback()
+        finally:
+            if conn:
+                conn.close()
+
+    def create_users_table(self):
+        """
+        Creates the users table to store user authentication information.
+        """
+        conn = None
+        try:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                open_id VARCHAR(200) DEFAULT '' UNIQUE,
+                avatar VARCHAR(300) DEFAULT '',
+                email VARCHAR(100) DEFAULT '',
+                name VARCHAR(50) DEFAULT '',
+                platform VARCHAR(50) DEFAULT '',
+                status SMALLINT DEFAULT 1,
+                is_deleted SMALLINT DEFAULT 0,
+                create_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                update_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            # Create index on open_id and platform for faster lookups
+            cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_open_id_platform
+            ON users(open_id, platform) WHERE is_deleted = 0;
+            """)
+
+            conn.commit()
+            print("Successfully created/ensured the users table exists.")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error creating users table: {error}")
             if conn:
                 conn.rollback()
         finally:

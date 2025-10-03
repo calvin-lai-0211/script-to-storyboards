@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.generate_key_prop_definitions import KeyPropDefinitionGenerator
+from api.middleware.auth import require_auth, UserPrincipal
 from api.schemas import (
     GenerateDefinitionsRequest,
     StatusResponse,
@@ -34,7 +35,7 @@ def get_db():
         pass
 
 @router.get("/prop/{prop_id}")
-async def get_prop(prop_id: int, db: Database = Depends(get_db)):
+async def get_prop(prop_id: int, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get prop details by ID.
     """
@@ -71,7 +72,7 @@ async def get_prop(prop_id: int, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/props/all", response_model=PropListResponse)
-async def get_all_props(db: Database = Depends(get_db)):
+async def get_all_props(db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get all props from all scripts.
     """
@@ -109,7 +110,7 @@ async def get_all_props(db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.post("/props/generate")
-async def generate_props(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db)):
+async def generate_props(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Generate key prop definitions for a specific episode.
     """

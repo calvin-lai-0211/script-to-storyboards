@@ -9,11 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Core Architecture
 
 ### Database-Driven Workflow
-The project uses PostgreSQL as the central data store with four main tables:
+The project uses PostgreSQL as the central data store with five main tables:
 - `scripts`: Stores raw script content, episodes, characters, and scenes
 - `flat_storyboards`: Denormalized storyboard data with scene/shot/sub-shot hierarchy
 - `character_portraits`: Character image prompts and generated portrait URLs
 - `scene_definitions`: Scene image prompts and keyframe URLs
+- `users`: User authentication data for Google OAuth login
 
 ### Three-Layer Structure
 1. **Models Layer** (`models/`): AI model wrappers
@@ -43,6 +44,71 @@ The LLM generates hierarchical storyboards:
 Scene (场景) → Shot (镜头) → Sub-shot (子镜头)
 ```
 Each sub-shot includes: camera angle (景别/机位), characters (涉及人物), scenes (涉及场景), image prompt (布景/人物/动作), video prompt, dialogue/sound effects, duration, and director notes.
+
+## Deployment
+
+### Local Development (Docker Compose)
+
+Quick start for local development:
+```bash
+cd docker/compose
+docker-compose up -d
+```
+
+Access at:
+- Frontend: http://localhost:5173
+- API: http://localhost:8001
+
+See [Docker Compose README](docker/compose/README.md) for details.
+
+### Kubernetes Deployment
+
+Deploy to local K8s cluster (k3d/k3s):
+```bash
+cd docker/k8s
+./local-deploy.sh
+```
+
+The script will:
+1. Build Docker images
+2. Import images to K8s
+3. Deploy Redis, API, Frontend
+4. Optionally deploy Ingress (port 80)
+
+**Access via Ingress**: http://localhost:8080 (k3d maps 80→8080)
+
+**Important K8s Resources**:
+- `redis-deployment.yaml`: Session storage (Redis)
+- `api-deployment.yaml`: Backend API service
+- `frontend-deployment.yaml`: Frontend web service
+- `nginx-configmap.yaml`: Nginx configuration
+- `ingress.yaml`: Unified entry point (optional)
+
+**Quick Commands**:
+```bash
+# View status
+kubectl get pods
+
+# View logs
+kubectl logs -f deployment/storyboard-api
+
+# Restart service
+kubectl rollout restart deployment/storyboard-api
+
+# Update API only
+./update-api.sh
+
+# Clean up
+./undeploy.sh
+```
+
+See [docs/k8s/README.md](docs/k8s/README.md) for complete K8s deployment guide.
+
+**Quick Links**:
+- [开发入门指南](docs/dev/getting-started.md) - 所有开发模式的完整教程
+- [Git Hooks 和 CI/CD](docs/dev/git-hooks-and-ci.md) - 代码提交规范和自动化
+- [前端文档](docs/frontend/README.md) - React 前端完整技术文档
+- [Kubernetes 部署](docs/k8s/README.md) - K8s 部署指南（含故障排查）
 
 ## Common Development Commands
 
@@ -144,6 +210,44 @@ The storyboard generation prompt explicitly requires:
 - `RUNNINGHUB_API_CONFIG`: RunningHub API settings with node IDs, timeouts, and model parameters
 - Model selection in `YiZhanLLM._get_api_key()` chooses appropriate key based on model name
 
+## Authentication and Authorization
+
+### Google OAuth Login
+The API now requires authentication for most endpoints. Authentication flow:
+
+1. **User Check**: `/api/user/check-login` returns Google auth URL if not logged in
+2. **Google Login**: User authorizes via Google OAuth 2.0
+3. **Callback**: `/api/user/google/callback` receives auth code, exchanges for tokens
+4. **Session Creation**: User data stored in Redis with 30-day TTL
+5. **Cookie**: Session ID stored in `st_sess_id` cookie (HttpOnly, SameSite=Lax)
+
+### Protected Routes
+Most API routes require authentication using `Depends(require_auth)`:
+- `/api/storyboards/*` - Storyboard data access
+- `/api/characters/*` - Character data
+- `/api/scenes/*` - Scene data
+- `/api/scripts/*` - Script management
+- `/api/props/*` - Props management
+- `/api/upload` - File uploads
+
+### Session Management
+- **Storage**: Redis (falls back to in-memory if unavailable)
+- **Key Format**: `st_session:{session_id}`
+- **Timeout**: 2592000 seconds (30 days)
+- **Auto-extend**: TTL renewed on each access
+
+### Configuration
+Update `utils/config.py`:
+```python
+GOOGLE_OAUTH_CONFIG = {
+    "client_id": "YOUR_GOOGLE_CLIENT_ID",
+    "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+    "redirect_uri": "http://localhost:8001/api/user/google/callback"
+}
+```
+
+See [docs/dev/google-oauth-authentication.md](docs/dev/google-oauth-authentication.md) for detailed setup instructions.
+
 ## Testing and Debugging
 
 - Use `console.debug` for debug logging (per user's global instructions)
@@ -155,3 +259,6 @@ The storyboard generation prompt explicitly requires:
 - Video generation using `wan_vace_img2video` with `video_prompt` from storyboards
 - Audio integration (TTS and sound effects)
 - Web UI for non-technical users
+- Additional OAuth providers (Discord, GitHub)
+- Refresh token auto-renewal
+- User permissions and roles

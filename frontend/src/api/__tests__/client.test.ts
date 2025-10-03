@@ -27,6 +27,7 @@ describe("API Client", () => {
 
     expect(result).toEqual(mockData);
     expect(global.fetch).toHaveBeenCalledWith("/test", {
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
@@ -79,6 +80,7 @@ describe("API Client", () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith("/test", {
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer token",
@@ -115,5 +117,34 @@ describe("API Client", () => {
   it("should have correct API_BASE_URL", () => {
     expect(API_BASE_URL).toBeDefined();
     expect(typeof API_BASE_URL).toBe("string");
+  });
+
+  it("should redirect to login when receiving 4003 error code", async () => {
+    const mockResponse = {
+      code: 4003,
+      message: "未登录或登录已过期，请重新登录",
+      data: {
+        auth_url: "https://accounts.google.com/o/oauth2/auth?...",
+      },
+    };
+
+    (global.fetch as any).mockResolvedValueOnce({
+      json: async () => mockResponse,
+    });
+
+    // Mock window.location.href
+    const originalLocation = window.location;
+    delete (window as any).location;
+    window.location = { href: "" } as any;
+
+    await expect(apiCall("/test")).rejects.toThrow("未登录或登录已过期，请重新登录");
+
+    // Should redirect to auth URL
+    expect(window.location.href).toBe(
+      "https://accounts.google.com/o/oauth2/auth?..."
+    );
+
+    // Restore window.location
+    ;(window as any).location = originalLocation;
   });
 });

@@ -44,7 +44,9 @@ docker save script-to-storyboards-api:latest -o "$PACKAGE_DIR/api-image.tar"
 docker save script-to-storyboards-frontend:latest -o "$PACKAGE_DIR/frontend-image.tar"
 
 echo -e "${YELLOW}📋 Copying K8s manifests...${NC}"
-cp docker/k8s/api-deployment.yaml "$PACKAGE_DIR/"
+# 使用生产环境配置
+cp docker/k8s/api-deployment.prod.yaml "$PACKAGE_DIR/api-deployment.yaml"
+cp docker/k8s/redis-deployment.yaml "$PACKAGE_DIR/"
 cp docker/k8s/frontend-deployment.yaml "$PACKAGE_DIR/"
 cp docker/k8s/ingress.yaml "$PACKAGE_DIR/"
 cp docker/k8s/nginx-configmap.yaml "$PACKAGE_DIR/"
@@ -106,6 +108,7 @@ fi
 echo -e "${YELLOW}📋 Applying Kubernetes manifests...${NC}"
 
 $KUBECTL apply -f nginx-configmap.yaml
+$KUBECTL apply -f redis-deployment.yaml
 $KUBECTL apply -f api-deployment.yaml
 $KUBECTL apply -f frontend-deployment.yaml
 

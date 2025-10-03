@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from utils.database import Database
 from procedure.generate_character_portraits import CharacterPortraitGenerator
 from models.jimeng_t2i_RH import JimengT2IRH
+from api.middleware.auth import require_auth, UserPrincipal
 from api.schemas import (
     GenerateDefinitionsRequest,
     GenerateImageRequest,
@@ -38,7 +39,7 @@ def get_db():
         pass
 
 @router.post("/characters/generate")
-async def generate_characters(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db)):
+async def generate_characters(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Generate character portrait definitions for a specific episode.
     """
@@ -63,7 +64,7 @@ async def generate_characters(request: GenerateDefinitionsRequest, response: Res
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/characters/all", response_model=CharacterListResponse)
-async def get_all_characters(db: Database = Depends(get_db)):
+async def get_all_characters(db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get all characters from all scripts.
     """
@@ -98,7 +99,7 @@ async def get_all_characters(db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/characters/{key}", response_model=CharactersByKeyResponse)
-async def get_characters(key: str, db: Database = Depends(get_db)):
+async def get_characters(key: str, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get all characters by script key using JOIN query.
     """
@@ -152,7 +153,7 @@ async def get_characters(key: str, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/character/{character_id}", response_model=CharacterDetailResponse)
-async def get_character(character_id: int, db: Database = Depends(get_db)):
+async def get_character(character_id: int, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get character details by ID.
     """
@@ -186,7 +187,7 @@ async def get_character(character_id: int, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.put("/character/{character_id}/prompt")
-async def update_character_prompt(character_id: int, request: dict, response: Response, db: Database = Depends(get_db)):
+async def update_character_prompt(character_id: int, request: dict, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Update character image prompt.
     """
@@ -225,7 +226,7 @@ async def update_character_prompt(character_id: int, request: dict, response: Re
         return ApiResponse.error(code=500, message=str(e))
 
 @router.post("/character/{character_id}/generate-image", response_model=GenerateImageResponse)
-async def generate_character_image(character_id: int, request: GenerateImageRequest, response: Response, db: Database = Depends(get_db)):
+async def generate_character_image(character_id: int, request: GenerateImageRequest, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Generate character portrait image using Jimeng text-to-image.
     Accepts prompt in request body, queries other data from database.

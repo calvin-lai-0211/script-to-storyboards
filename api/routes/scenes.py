@@ -12,6 +12,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.generate_scene_definitions import SceneDefinitionGenerator
+from api.middleware.auth import require_auth, UserPrincipal
 from api.schemas import (
     GenerateDefinitionsRequest,
     StatusResponse,
@@ -35,7 +36,7 @@ def get_db():
         pass
 
 @router.post("/scenes/generate")
-async def generate_scenes(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db)):
+async def generate_scenes(request: GenerateDefinitionsRequest, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Generate scene definitions for a specific episode.
     """
@@ -60,7 +61,7 @@ async def generate_scenes(request: GenerateDefinitionsRequest, response: Respons
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/scenes/all", response_model=SceneListResponse)
-async def get_all_scenes(db: Database = Depends(get_db)):
+async def get_all_scenes(db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get all scenes from all scripts.
     """
@@ -93,7 +94,7 @@ async def get_all_scenes(db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/scene/{scene_id}")
-async def get_scene(scene_id: int, db: Database = Depends(get_db)):
+async def get_scene(scene_id: int, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get scene details by ID.
     """
@@ -130,7 +131,7 @@ async def get_scene(scene_id: int, db: Database = Depends(get_db)):
         return ApiResponse.error(code=500, message=str(e))
 
 @router.get("/scenes/{key}", response_model=ScenesByKeyResponse)
-async def get_scenes(key: str, db: Database = Depends(get_db)):
+async def get_scenes(key: str, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get all scenes by script key using JOIN query.
     """
