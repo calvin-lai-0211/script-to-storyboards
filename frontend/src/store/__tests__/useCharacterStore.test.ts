@@ -1,26 +1,26 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { useCharacterStore } from '../useCharacterStore';
-import type { CharacterData } from '../types';
+import { describe, it, expect, beforeEach } from "vitest";
+import { useCharacterStore } from "../useCharacterStore";
+import type { CharacterData } from "../types";
 
-describe('useCharacterStore', () => {
+describe("useCharacterStore", () => {
   beforeEach(() => {
     useCharacterStore.getState().clearAll();
   });
 
-  describe('currentCharacter', () => {
-    it('should initialize with null currentCharacter', () => {
+  describe("currentCharacter", () => {
+    it("should initialize with null currentCharacter", () => {
       const { currentCharacter } = useCharacterStore.getState();
       expect(currentCharacter).toBeNull();
     });
 
-    it('should set and get currentCharacter', () => {
+    it("should set and get currentCharacter", () => {
       const mockCharacter: CharacterData = {
         id: 1,
-        character_name: 'Test Character',
-        drama_name: 'Test Drama',
+        character_name: "Test Character",
+        drama_name: "Test Drama",
         episode_number: 1,
         image_url: null,
-        image_prompt: 'Test prompt',
+        image_prompt: "Test prompt",
         is_key_character: false,
       };
 
@@ -31,30 +31,30 @@ describe('useCharacterStore', () => {
     });
   });
 
-  describe('allCharacters', () => {
-    it('should initialize with null allCharacters', () => {
+  describe("allCharacters", () => {
+    it("should initialize with null allCharacters", () => {
       const { allCharacters } = useCharacterStore.getState();
       expect(allCharacters).toBeNull();
     });
 
-    it('should set and get allCharacters list', () => {
+    it("should set and get allCharacters list", () => {
       const mockCharacters: CharacterData[] = [
         {
           id: 1,
-          character_name: 'Char 1',
-          drama_name: 'Drama 1',
+          character_name: "Char 1",
+          drama_name: "Drama 1",
           episode_number: 1,
           image_url: null,
-          image_prompt: 'Prompt 1',
+          image_prompt: "Prompt 1",
           is_key_character: true,
         },
         {
           id: 2,
-          character_name: 'Char 2',
-          drama_name: 'Drama 1',
+          character_name: "Char 2",
+          drama_name: "Drama 1",
           episode_number: 1,
           image_url: null,
-          image_prompt: 'Prompt 2',
+          image_prompt: "Prompt 2",
           is_key_character: false,
         },
       ];
@@ -67,15 +67,15 @@ describe('useCharacterStore', () => {
     });
   });
 
-  describe('clearAll', () => {
-    it('should clear all store data', () => {
+  describe("clearAll", () => {
+    it("should clear all store data", () => {
       const mockCharacter: CharacterData = {
         id: 1,
-        character_name: 'Character',
-        drama_name: 'Drama',
+        character_name: "Character",
+        drama_name: "Drama",
         episode_number: 1,
         image_url: null,
-        image_prompt: 'Prompt',
+        image_prompt: "Prompt",
         is_key_character: false,
       };
 

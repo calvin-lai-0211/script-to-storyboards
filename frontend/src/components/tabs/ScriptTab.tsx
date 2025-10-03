@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, FileText } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useEpisodeStore } from '@store/useEpisodeStore';
+import React, { useState, useEffect } from "react";
+import { Loader2, AlertCircle, FileText, RefreshCw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useEpisodeStore } from "@store/useEpisodeStore";
 
 interface ScriptTabProps {
   scriptKey: string;
@@ -20,7 +20,8 @@ interface ScriptData {
 }
 
 const ScriptTab: React.FC<ScriptTabProps> = ({ scriptKey }) => {
-  const { getEpisode, setEpisode, setCurrentEpisode, currentEpisode } = useEpisodeStore();
+  const { getEpisode, setEpisode, setCurrentEpisode, currentEpisode } =
+    useEpisodeStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,21 +31,22 @@ const ScriptTab: React.FC<ScriptTabProps> = ({ scriptKey }) => {
   useEffect(() => {
     // If already in store, skip fetch
     if (episode) {
-      console.debug('ScriptTab: Using cached episode');
+      console.debug("ScriptTab: Using cached episode");
       return;
     }
 
+    // Only fetch if no cache
     fetchEpisode();
-  }, [scriptKey, episode]);
+  }, [scriptKey, getEpisode]);
 
   const fetchEpisode = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.debug('ScriptTab fetching episode with key:', scriptKey);
+      console.debug("ScriptTab fetching episode with key:", scriptKey);
       const data = await apiCall<ScriptData>(
-        API_ENDPOINTS.getScript(scriptKey)
+        API_ENDPOINTS.getScript(scriptKey),
       );
 
       setEpisode(scriptKey, data);
@@ -54,11 +56,16 @@ const ScriptTab: React.FC<ScriptTabProps> = ({ scriptKey }) => {
         setCurrentEpisode(data);
       }
     } catch (err) {
-      console.error('Error fetching episode:', err);
-      setError('获取剧本失败');
+      console.error("Error fetching episode:", err);
+      setError("获取剧本失败");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    console.debug("ScriptTab: Manually refreshing episode");
+    fetchEpisode();
   };
 
   if (loading) {
@@ -77,7 +84,7 @@ const ScriptTab: React.FC<ScriptTabProps> = ({ scriptKey }) => {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">{error || '剧本不存在'}</p>
+          <p className="text-red-600">{error || "剧本不存在"}</p>
         </div>
       </div>
     );
@@ -97,26 +104,37 @@ const ScriptTab: React.FC<ScriptTabProps> = ({ scriptKey }) => {
 
           {episode.roles && episode.roles.length > 0 && (
             <div className="text-sm text-slate-600">
-              角色: {episode.roles.join(', ')}
+              角色: {episode.roles.join(", ")}
             </div>
           )}
         </div>
 
-        {episode.author && (
-          <div className="text-sm text-slate-600">
-            作者: {episode.author}
-          </div>
-        )}
+        <div className="flex items-center space-x-4">
+          {episode.author && (
+            <div className="text-sm text-slate-600">作者: {episode.author}</div>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="刷新剧本"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <span>刷新</span>
+          </button>
+        </div>
       </div>
 
       {/* 剧本内容 */}
       <div className="flex-1 overflow-auto bg-slate-50">
         <div className="max-w-5xl mx-auto p-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="prose prose-slate max-w-none p-8 prose-p:my-4 prose-headings:my-6 prose-p:leading-loose prose-li:my-2">
+            <div className="prose p-8">
               <ReactMarkdown
                 components={{
-                  p: ({ children }) => <p className="whitespace-pre-wrap">{children}</p>,
+                  p: ({ children }) => (
+                    <p className="whitespace-pre-wrap">{children}</p>
+                  ),
                 }}
               >
                 {episode.content}

@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { User, Sparkles, AlertCircle, Save, Edit, Wand2, ArrowLeft } from 'lucide-react';
-import ImageDisplay from '../components/ImageDisplay';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useCharacterStore } from '@store/useCharacterStore';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  User,
+  Sparkles,
+  AlertCircle,
+  Save,
+  Edit,
+  Wand2,
+  ArrowLeft,
+} from "lucide-react";
+import ImageDisplay from "../components/ImageDisplay";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useCharacterStore } from "@store/useCharacterStore";
 
 interface CharacterData {
   character_name: string;
@@ -16,11 +24,13 @@ const CharacterViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentCharacter } = useCharacterStore();
-  const [characterData, setCharacterData] = useState<CharacterData | null>(null);
+  const [characterData, setCharacterData] = useState<CharacterData | null>(
+    null,
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
-  const [editedPrompt, setEditedPrompt] = useState<string>('');
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
   const [generating, setGenerating] = useState<boolean>(false);
 
@@ -38,8 +48,8 @@ const CharacterViewer: React.FC = () => {
       setCharacterData(data as CharacterData);
       setEditedPrompt(data.image_prompt as string);
     } catch (err) {
-      console.error('Error fetching character data:', err);
-      setError('获取角色数据失败，请检查网络或服务器。');
+      console.error("Error fetching character data:", err);
+      setError("获取角色数据失败，请检查网络或服务器。");
     } finally {
       setLoading(false);
     }
@@ -51,15 +61,15 @@ const CharacterViewer: React.FC = () => {
     setSaving(true);
     try {
       await apiCall(API_ENDPOINTS.updateCharacterPrompt(id), {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({ image_prompt: editedPrompt }),
       });
 
       setCharacterData({ ...characterData, image_prompt: editedPrompt });
       setIsEditingPrompt(false);
     } catch (err) {
-      console.error('Error saving prompt:', err);
-      alert('保存失败，请重试。');
+      console.error("Error saving prompt:", err);
+      alert("保存失败，请重试。");
     } finally {
       setSaving(false);
     }
@@ -69,34 +79,39 @@ const CharacterViewer: React.FC = () => {
     if (!characterData || !id) return;
 
     // Use editedPrompt if editing, otherwise use current prompt
-    const promptToUse = isEditingPrompt ? editedPrompt : characterData.image_prompt;
+    const promptToUse = isEditingPrompt
+      ? editedPrompt
+      : characterData.image_prompt;
 
-    if (!promptToUse || promptToUse.trim() === '') {
-      alert('请先添加角色描述后再生成图片');
+    if (!promptToUse || promptToUse.trim() === "") {
+      alert("请先添加角色描述后再生成图片");
       return;
     }
 
     setGenerating(true);
     try {
-      const result = await apiCall<any>(API_ENDPOINTS.generateCharacterImage(id), {
-        method: 'POST',
-        body: JSON.stringify({
-          image_prompt: promptToUse
-        }),
-      });
+      const result = await apiCall<any>(
+        API_ENDPOINTS.generateCharacterImage(id),
+        {
+          method: "POST",
+          body: JSON.stringify({
+            image_prompt: promptToUse,
+          }),
+        },
+      );
 
       // Update character data with new image URL and prompt
       setCharacterData({
         ...characterData,
         image_url: result.image_url as string,
-        image_prompt: promptToUse
+        image_prompt: promptToUse,
       });
       setEditedPrompt(promptToUse);
       setIsEditingPrompt(false);
-      console.debug('Image generated successfully:', result.image_url);
+      console.debug("Image generated successfully:", result.image_url);
     } catch (err) {
-      console.error('Error generating image:', err);
-      alert('生成图片失败，请检查网络或稍后重试。');
+      console.error("Error generating image:", err);
+      alert("生成图片失败，请检查网络或稍后重试。");
     } finally {
       setGenerating(false);
     }
@@ -106,7 +121,7 @@ const CharacterViewer: React.FC = () => {
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* 返回按钮 */}
       <button
-        onClick={() => navigate('/characters')}
+        onClick={() => navigate("/characters")}
         className="absolute top-4 left-4 z-10 flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200"
       >
         <ArrowLeft className="w-5 h-5 text-slate-700" />
@@ -126,12 +141,15 @@ const CharacterViewer: React.FC = () => {
               </div>
             </div>
             <p className="text-lg text-slate-600 leading-relaxed">
-              {currentCharacter?.character_name || characterData?.character_name || '加载中...'}
+              {currentCharacter?.character_name ||
+                characterData?.character_name ||
+                "加载中..."}
             </p>
           </div>
           {currentCharacter && (
             <p className="text-sm text-slate-500">
-              {currentCharacter.drama_name} - 第{currentCharacter.episode_number}集
+              {currentCharacter.drama_name} - 第
+              {currentCharacter.episode_number}集
             </p>
           )}
         </div>
@@ -176,7 +194,9 @@ const CharacterViewer: React.FC = () => {
                         className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                       >
                         <Wand2 className="w-4 h-4" />
-                        <span className="text-sm font-medium">{generating ? '生成中...' : '生成图片'}</span>
+                        <span className="text-sm font-medium">
+                          {generating ? "生成中..." : "生成图片"}
+                        </span>
                       </button>
                       <button
                         onClick={() => setIsEditingPrompt(true)}
@@ -191,7 +211,7 @@ const CharacterViewer: React.FC = () => {
                       <button
                         onClick={() => {
                           setIsEditingPrompt(false);
-                          setEditedPrompt(characterData?.image_prompt || '');
+                          setEditedPrompt(characterData?.image_prompt || "");
                         }}
                         className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-200 text-sm font-medium"
                       >
@@ -203,7 +223,9 @@ const CharacterViewer: React.FC = () => {
                         className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Save className="w-4 h-4" />
-                        <span className="text-sm font-medium">{saving ? '保存中...' : '保存'}</span>
+                        <span className="text-sm font-medium">
+                          {saving ? "保存中..." : "保存"}
+                        </span>
                       </button>
                     </div>
                   )}
@@ -211,7 +233,9 @@ const CharacterViewer: React.FC = () => {
 
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-pulse text-slate-400">加载中...</div>
+                    <div className="animate-pulse text-slate-400">
+                      加载中...
+                    </div>
                   </div>
                 ) : isEditingPrompt ? (
                   <textarea
@@ -223,7 +247,7 @@ const CharacterViewer: React.FC = () => {
                 ) : (
                   <div className="flex-1 overflow-y-auto prose max-w-none">
                     <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {characterData?.image_prompt || '暂无描述'}
+                      {characterData?.image_prompt || "暂无描述"}
                     </p>
                   </div>
                 )}
@@ -239,12 +263,14 @@ const CharacterViewer: React.FC = () => {
                 </div>
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-pulse text-slate-400">加载中...</div>
+                    <div className="animate-pulse text-slate-400">
+                      加载中...
+                    </div>
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto prose max-w-none">
                     <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {characterData?.reflection || '暂无创作提示'}
+                      {characterData?.reflection || "暂无创作提示"}
                     </p>
                   </div>
                 )}

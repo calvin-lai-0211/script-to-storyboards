@@ -4,14 +4,17 @@
 
 // API Base URL
 // Use ?? instead of || to allow empty string for K8s deployment
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 // API Endpoints
 export const API_ENDPOINTS = {
   // Character endpoints
   getCharacter: (id: string | number) => `${API_BASE_URL}/api/character/${id}`,
-  updateCharacterPrompt: (id: string | number) => `${API_BASE_URL}/api/character/${id}/prompt`,
-  generateCharacterImage: (id: string | number) => `${API_BASE_URL}/api/character/${id}/generate-image`,
+  updateCharacterPrompt: (id: string | number) =>
+    `${API_BASE_URL}/api/character/${id}/prompt`,
+  generateCharacterImage: (id: string | number) =>
+    `${API_BASE_URL}/api/character/${id}/generate-image`,
 
   // Storyboard endpoints
   generateStoryboard: () => `${API_BASE_URL}/api/storyboard/generate`,
@@ -54,12 +57,15 @@ export interface ApiResponse<T = unknown> {
 }
 
 // Helper function for API calls
-export const apiCall = async <T = unknown>(url: string, options?: RequestInit): Promise<T> => {
-  console.debug('API call:', url);
+export const apiCall = async <T = unknown>(
+  url: string,
+  options?: RequestInit,
+): Promise<T> => {
+  console.debug("API call:", url);
   const response = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options?.headers,
     },
   });

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { SceneData } from './types';
+import { create } from "zustand";
+import { SceneData } from "./types";
 
 interface SceneStore {
   // Current scene context

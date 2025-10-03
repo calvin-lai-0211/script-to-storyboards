@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Loader2, AlertCircle, Star, RefreshCw } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { usePropStore } from '@store/usePropStore';
+import React, { useState, useEffect } from "react";
+import { Package, Loader2, AlertCircle, Star, RefreshCw } from "lucide-react";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { usePropStore } from "@store/usePropStore";
 
 interface Prop {
   id: number;
@@ -29,7 +29,7 @@ const Props: React.FC = () => {
   useEffect(() => {
     // If already in store, skip fetch
     if (allProps) {
-      console.debug('Props: Using cached data');
+      console.debug("Props: Using cached data");
       return;
     }
 
@@ -48,22 +48,22 @@ const Props: React.FC = () => {
 
       if (signal?.aborted) return;
 
-      console.debug('Props: Fetching from API');
+      console.debug("Props: Fetching from API");
       const data = await apiCall<{ props: Prop[]; count: number }>(
         API_ENDPOINTS.getAllProps(),
-        { signal }
+        { signal },
       );
 
       if (signal?.aborted) return;
 
       setAllProps(data.props);
     } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        console.debug('Props fetch cancelled');
+      if ((err as Error).name === "AbortError") {
+        console.debug("Props fetch cancelled");
         return;
       }
-      console.error('Error fetching props:', err);
-      setError('获取道具数据失败');
+      console.error("Error fetching props:", err);
+      setError("获取道具数据失败");
     } finally {
       if (!signal?.aborted) {
         setLoading(false);
@@ -123,7 +123,7 @@ const Props: React.FC = () => {
             disabled={loading}
             className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>刷新</span>
           </button>
         </div>
@@ -148,7 +148,9 @@ const Props: React.FC = () => {
               )}
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-bold text-slate-800 flex-1">{prop.prop_name}</h3>
+                  <h3 className="font-bold text-slate-800 flex-1">
+                    {prop.prop_name}
+                  </h3>
                   {prop.is_key_prop && (
                     <span title="关键道具">
                       <Star className="w-4 h-4 text-amber-500 fill-amber-400 flex-shrink-0 ml-2" />
@@ -156,10 +158,14 @@ const Props: React.FC = () => {
                   )}
                 </div>
 
-                <p className="text-xs text-slate-600 mb-2">{prop.drama_name} - 第{prop.episode_number}集</p>
+                <p className="text-xs text-slate-600 mb-2">
+                  {prop.drama_name} - 第{prop.episode_number}集
+                </p>
 
                 {prop.prop_brief && (
-                  <p className="text-xs text-slate-500 mb-2 line-clamp-2">{prop.prop_brief}</p>
+                  <p className="text-xs text-slate-500 mb-2 line-clamp-2">
+                    {prop.prop_brief}
+                  </p>
                 )}
 
                 {prop.shots_appeared && prop.shots_appeared.length > 0 && (

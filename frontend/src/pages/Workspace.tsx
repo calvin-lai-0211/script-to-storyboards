@@ -1,19 +1,28 @@
-import React from 'react';
-import { useSearchParams, useParams, Navigate } from 'react-router-dom';
-import { FileText, Film, Brain, Settings } from 'lucide-react';
-import ScriptTab from '../components/tabs/ScriptTab';
-import StoryboardTab from '../components/tabs/StoryboardTab';
-import MemoryTab from '../components/tabs/MemoryTab';
-import WorkflowTab from '../components/tabs/WorkflowTab';
-import { useEpisodeStore } from '@store/useEpisodeStore';
+import React from "react";
+import { useSearchParams, useParams, Navigate } from "react-router-dom";
+import { FileText, Film, Brain, Settings } from "lucide-react";
+import ScriptTab from "../components/tabs/ScriptTab";
+import StoryboardTab from "../components/tabs/StoryboardTab";
+import MemoryTab from "../components/tabs/MemoryTab";
+import WorkflowTab from "../components/tabs/WorkflowTab";
+import { useEpisodeStore } from "@store/useEpisodeStore";
 
 const Workspace: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { key: paramKey } = useParams<{ key: string }>();
   // Support both URL params and route params
-  const key = paramKey || searchParams.get('key') || '';
-  const [activeTab, setActiveTab] = React.useState('script');
+  const key = paramKey || searchParams.get("key") || "";
+  const tabFromUrl = searchParams.get("tab") || "script";
+  const [activeTab, setActiveTab] = React.useState(tabFromUrl);
   const { currentEpisode, setCurrentEpisode, getEpisode } = useEpisodeStore();
+
+  // Sync activeTab with URL
+  React.useEffect(() => {
+    const urlTab = searchParams.get("tab") || "script";
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   // Load episode data: check store first, then fetch if needed
   React.useEffect(() => {
@@ -43,21 +52,21 @@ const Workspace: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'script', label: '原文', icon: FileText },
-    { id: 'storyboard', label: '分镜', icon: Film },
-    { id: 'memory', label: 'Memory', icon: Brain },
-    { id: 'workflow', label: '流程控制', icon: Settings }
+    { id: "script", label: "原文", icon: FileText },
+    { id: "storyboard", label: "分镜", icon: Film },
+    { id: "memory", label: "Memory", icon: Brain },
+    { id: "workflow", label: "流程控制 (fake)", icon: Settings },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'script':
+      case "script":
         return <ScriptTab scriptKey={key} />;
-      case 'storyboard':
+      case "storyboard":
         return <StoryboardTab scriptKey={key} />;
-      case 'memory':
+      case "memory":
         return <MemoryTab scriptKey={key} />;
-      case 'workflow':
+      case "workflow":
         return <WorkflowTab scriptKey={key} />;
       default:
         return null;
@@ -69,7 +78,9 @@ const Workspace: React.FC = () => {
       {/* 顶部标题栏 */}
       <div className="bg-white border-b border-slate-200 px-6 py-4">
         <h1 className="text-2xl font-bold text-slate-800">
-          {currentEpisode ? `${currentEpisode.title} - 第${currentEpisode.episode_num}集` : '加载中...'}
+          {currentEpisode
+            ? `${currentEpisode.title} - 第${currentEpisode.episode_num}集`
+            : "加载中..."}
         </h1>
       </div>
 
@@ -81,11 +92,14 @@ const Workspace: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSearchParams({ tab: tab.id });
+                }}
                 className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-slate-600 hover:text-slate-800'
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-slate-600 hover:text-slate-800"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -97,9 +111,7 @@ const Workspace: React.FC = () => {
       </div>
 
       {/* 内容区 */}
-      <div className="flex-1 overflow-hidden">
-        {renderTabContent()}
-      </div>
+      <div className="flex-1 overflow-hidden">{renderTabContent()}</div>
     </div>
   );
 };

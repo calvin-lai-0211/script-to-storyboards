@@ -75,4 +75,3 @@ export interface ScriptData {
   creation_year: number | null;
   score: number | null;
 }
-

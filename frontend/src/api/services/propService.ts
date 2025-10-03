@@ -1,6 +1,6 @@
-import { apiCall } from '../client';
-import { API_ENDPOINTS } from '../endpoints';
-import type { PropsResponse } from '../types';
+import { apiCall } from "../client";
+import { API_ENDPOINTS } from "../endpoints";
+import type { PropsResponse } from "../types";
 
 export const propService = {
   /**

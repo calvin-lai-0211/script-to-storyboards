@@ -9,12 +9,12 @@
     "build": "tsc -b && vite build",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run",
+    "test:cov": "vitest --coverage --run",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix --report-unused-disable-directives --max-warnings 0",
     "type-check": "tsc -b --noEmit",
-    "pretty": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\"",
-    "pretty:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\"",
+    "pretty": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "pretty:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "@types/react-dom": "^19.1.9",
     "@typescript-eslint/eslint-plugin": "^8.44.0",
     "@typescript-eslint/parser": "^8.44.0",
+    "@vitest/coverage-v8": "3.2.4",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.35.0",

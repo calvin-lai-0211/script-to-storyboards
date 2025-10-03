@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { PropData } from './types';
+import { create } from "zustand";
+import { PropData } from "./types";
 
 interface PropStore {
   // Current prop context

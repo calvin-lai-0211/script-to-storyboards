@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { FileText, Film, Users, Camera, Image, Brain, Check, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  FileText,
+  Film,
+  Users,
+  Camera,
+  Image,
+  Brain,
+  Check,
+  Loader2,
+} from "lucide-react";
 
 interface WorkflowTabProps {
   scriptKey: string;
@@ -15,45 +24,45 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
     {
       id: 0,
       icon: FileText,
-      title: '剧本导入',
-      description: '将剧本内容导入数据库',
-      color: 'blue'
+      title: "剧本导入",
+      description: "将剧本内容导入数据库",
+      color: "blue",
     },
     {
       id: 1,
       icon: Film,
-      title: '生成分镜脚本',
-      description: '使用 AI 将剧本转换为分镜脚本',
-      color: 'purple'
+      title: "生成分镜脚本",
+      description: "使用 AI 将剧本转换为分镜脚本",
+      color: "purple",
     },
     {
       id: 2,
       icon: Users,
-      title: '提取资产',
-      description: '从分镜中提取角色、场景、道具',
-      color: 'pink'
+      title: "提取资产",
+      description: "从分镜中提取角色、场景、道具",
+      color: "pink",
     },
     {
       id: 3,
       icon: Camera,
-      title: '生成 Prompts',
-      description: '为每个资产生成图片描述',
-      color: 'indigo'
+      title: "生成 Prompts",
+      description: "为每个资产生成图片描述",
+      color: "indigo",
     },
     {
       id: 4,
       icon: Image,
-      title: '生成图片',
-      description: '使用 T2I 模型生成资产图片',
-      color: 'green'
+      title: "生成图片",
+      description: "使用 T2I 模型生成资产图片",
+      color: "green",
     },
     {
       id: 5,
       icon: Brain,
-      title: '生成 Memory',
-      description: '生成剧集摘要和关键信息',
-      color: 'amber'
-    }
+      title: "生成 Memory",
+      description: "生成剧集摘要和关键信息",
+      color: "amber",
+    },
   ];
 
   const handleRunStep = (stepId: number) => {
@@ -69,10 +78,10 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
   };
 
   const getStepStatus = (stepId: number) => {
-    if (runningStep === stepId) return 'running';
-    if (completedSteps.has(stepId)) return 'completed';
-    if (stepId === currentStep) return 'current';
-    return 'pending';
+    if (runningStep === stepId) return "running";
+    if (completedSteps.has(stepId)) return "completed";
+    if (stepId === currentStep) return "current";
+    return "pending";
   };
 
   return (
@@ -91,9 +100,9 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
           {steps.map((step, index) => {
             const Icon = step.icon;
             const status = getStepStatus(step.id);
-            const isRunning = status === 'running';
-            const isCompleted = status === 'completed';
-            const isCurrent = status === 'current';
+            const isRunning = status === "running";
+            const isCompleted = status === "completed";
+            const isCurrent = status === "current";
 
             return (
               <div key={step.id} className="relative">
@@ -106,10 +115,10 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
                 <div
                   className={`relative bg-white rounded-xl border-2 transition-all duration-300 ${
                     isCompleted
-                      ? 'border-green-400 shadow-lg'
+                      ? "border-green-400 shadow-lg"
                       : isCurrent
-                      ? 'border-blue-400 shadow-xl'
-                      : 'border-slate-200'
+                        ? "border-blue-400 shadow-xl"
+                        : "border-slate-200"
                   }`}
                 >
                   <div className="p-6 flex items-start space-x-4">
@@ -117,10 +126,10 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
                     <div
                       className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
                         isCompleted
-                          ? 'bg-green-500'
+                          ? "bg-green-500"
                           : isCurrent
-                          ? `bg-${step.color}-500`
-                          : 'bg-slate-200'
+                            ? `bg-${step.color}-500`
+                            : "bg-slate-200"
                       }`}
                     >
                       {isRunning ? (
@@ -130,7 +139,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
                       ) : (
                         <Icon
                           className={`w-6 h-6 ${
-                            isCurrent ? 'text-white' : 'text-slate-400'
+                            isCurrent ? "text-white" : "text-slate-400"
                           }`}
                         />
                       )}
@@ -141,7 +150,7 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
                       <div className="flex items-center justify-between mb-2">
                         <h3
                           className={`text-lg font-bold ${
-                            isCurrent ? 'text-slate-800' : 'text-slate-600'
+                            isCurrent ? "text-slate-800" : "text-slate-600"
                           }`}
                         >
                           Step {step.id + 1}: {step.title}
@@ -174,7 +183,8 @@ const WorkflowTab: React.FC<WorkflowTabProps> = () => {
         {/* 底部说明 */}
         <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
           <p className="text-sm text-amber-800">
-            <strong>注意：</strong>此流程控制面板为占位界面，实际执行功能需要集成后端 API。
+            <strong>注意：</strong>
+            此流程控制面板为占位界面，实际执行功能需要集成后端 API。
           </p>
         </div>
       </div>

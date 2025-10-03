@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Sparkles, AlertCircle, ArrowLeft, Star } from 'lucide-react';
-import ImageDisplay from '../components/ImageDisplay';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useSceneStore } from '@store/useSceneStore';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { MapPin, Sparkles, AlertCircle, ArrowLeft, Star } from "lucide-react";
+import ImageDisplay from "../components/ImageDisplay";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useSceneStore } from "@store/useSceneStore";
 
 interface SceneData {
   id: number;
@@ -41,8 +41,8 @@ const SceneViewer: React.FC = () => {
       const data = await apiCall<any>(API_ENDPOINTS.getScene(sceneId));
       setSceneData(data as SceneData);
     } catch (err) {
-      console.error('Error fetching scene data:', err);
-      setError('获取场景数据失败，请检查网络或服务器。');
+      console.error("Error fetching scene data:", err);
+      setError("获取场景数据失败，请检查网络或服务器。");
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ const SceneViewer: React.FC = () => {
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50">
       {/* 返回按钮 */}
       <button
-        onClick={() => navigate('/scenes')}
+        onClick={() => navigate("/scenes")}
         className="absolute top-4 left-4 z-10 flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200"
       >
         <ArrowLeft className="w-5 h-5 text-slate-700" />
@@ -73,7 +73,9 @@ const SceneViewer: React.FC = () => {
             </div>
             <div>
               <p className="text-lg text-slate-800 font-semibold leading-relaxed">
-                {currentScene?.scene_name || sceneData?.scene_name || '加载中...'}
+                {currentScene?.scene_name ||
+                  sceneData?.scene_name ||
+                  "加载中..."}
               </p>
               {sceneData?.is_key_scene && (
                 <span className="inline-flex items-center space-x-1 px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full mt-1">
@@ -138,12 +140,14 @@ const SceneViewer: React.FC = () => {
                 </div>
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="animate-pulse text-slate-400">加载中...</div>
+                    <div className="animate-pulse text-slate-400">
+                      加载中...
+                    </div>
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto prose max-w-none">
                     <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {sceneData?.image_prompt || '暂无描述'}
+                      {sceneData?.image_prompt || "暂无描述"}
                     </p>
                   </div>
                 )}
@@ -160,7 +164,9 @@ const SceneViewer: React.FC = () => {
                   </div>
                   {loading ? (
                     <div className="flex-1 flex items-center justify-center">
-                      <div className="animate-pulse text-slate-400">加载中...</div>
+                      <div className="animate-pulse text-slate-400">
+                        加载中...
+                      </div>
                     </div>
                   ) : (
                     <div className="flex-1 overflow-y-auto prose max-w-none">
@@ -174,44 +180,56 @@ const SceneViewer: React.FC = () => {
 
               {/* 场景元信息 */}
               <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-lg p-6">
-                <h3 className="font-display font-bold text-slate-800 text-lg mb-4">场景信息</h3>
+                <h3 className="font-display font-bold text-slate-800 text-lg mb-4">
+                  场景信息
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {sceneData?.version && (
                     <div>
                       <p className="text-xs text-slate-500 mb-1">版本</p>
-                      <p className="text-sm text-slate-700 font-medium">{sceneData.version}</p>
+                      <p className="text-sm text-slate-700 font-medium">
+                        {sceneData.version}
+                      </p>
                     </div>
                   )}
-                  {sceneData?.shots_appeared && sceneData.shots_appeared.length > 0 && (
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">出现镜头数</p>
-                      <p className="text-sm text-slate-700 font-medium">{sceneData.shots_appeared.length} 个</p>
-                    </div>
-                  )}
+                  {sceneData?.shots_appeared &&
+                    sceneData.shots_appeared.length > 0 && (
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1">
+                          出现镜头数
+                        </p>
+                        <p className="text-sm text-slate-700 font-medium">
+                          {sceneData.shots_appeared.length} 个
+                        </p>
+                      </div>
+                    )}
                   {sceneData?.created_at && (
                     <div className="col-span-2">
                       <p className="text-xs text-slate-500 mb-1">创建时间</p>
                       <p className="text-sm text-slate-700 font-medium">
-                        {new Date(sceneData.created_at).toLocaleString('zh-CN')}
+                        {new Date(sceneData.created_at).toLocaleString("zh-CN")}
                       </p>
                     </div>
                   )}
                 </div>
-                {sceneData?.shots_appeared && sceneData.shots_appeared.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-xs text-slate-500 mb-2">出现镜头列表</p>
-                    <div className="flex flex-wrap gap-2">
-                      {sceneData.shots_appeared.map((shot, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full border border-green-200"
-                        >
-                          {shot}
-                        </span>
-                      ))}
+                {sceneData?.shots_appeared &&
+                  sceneData.shots_appeared.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs text-slate-500 mb-2">
+                        出现镜头列表
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sceneData.shots_appeared.map((shot, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full border border-green-200"
+                          >
+                            {shot}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             </div>
           </div>

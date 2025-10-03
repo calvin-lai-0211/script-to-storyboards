@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { EpisodeData, StoryboardData, MemoryData, ScriptData } from './types';
+import { create } from "zustand";
+import { EpisodeData, StoryboardData, MemoryData, ScriptData } from "./types";
 
 interface EpisodeStore {
   // Current episode context (可以是部分数据，因为不同页面可能只有部分信息)

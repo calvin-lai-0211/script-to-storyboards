@@ -1,10 +1,12 @@
-import { API_BASE_URL } from './client';
+import { API_BASE_URL } from "./client";
 
 export const API_ENDPOINTS = {
   // Character endpoints
   getCharacter: (id: string | number) => `${API_BASE_URL}/api/character/${id}`,
-  updateCharacterPrompt: (id: string | number) => `${API_BASE_URL}/api/character/${id}/prompt`,
-  generateCharacterImage: (id: string | number) => `${API_BASE_URL}/api/character/${id}/generate-image`,
+  updateCharacterPrompt: (id: string | number) =>
+    `${API_BASE_URL}/api/character/${id}/prompt`,
+  generateCharacterImage: (id: string | number) =>
+    `${API_BASE_URL}/api/character/${id}/generate-image`,
 
   // Storyboard endpoints
   generateStoryboard: () => `${API_BASE_URL}/api/storyboard/generate`,

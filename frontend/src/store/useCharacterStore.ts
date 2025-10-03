@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { CharacterData } from './types';
+import { create } from "zustand";
+import { CharacterData } from "./types";
 
 interface CharacterStore {
   // Current character context

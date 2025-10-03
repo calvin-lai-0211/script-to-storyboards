@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Layers, ChevronRight, Sparkles } from 'lucide-react';
+import React from "react";
+import { Image, Layers, ChevronRight, Sparkles } from "lucide-react";
 
 interface SidebarProps {
   currentPage: string;
@@ -9,17 +9,17 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
     {
-      id: 'character',
-      name: 'Character Generator',
+      id: "character",
+      name: "Character Generator",
       icon: Image,
-      description: ''
+      description: "",
     },
     {
-      id: 'Gallery',
-      name: 'Gallery',
+      id: "Gallery",
+      name: "Gallery",
       icon: Layers,
-      description: 'View your creations',
-      disabled: true
+      description: "View your creations",
+      disabled: true,
     },
   ];
 
@@ -33,13 +33,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
 
       {/* 艺术感装饰网格 */}
       <div className="absolute inset-0 opacity-20">
-        <div className="h-full w-full" style={{
-          backgroundImage: `
+        <div
+          className="h-full w-full"
+          style={{
+            backgroundImage: `
             linear-gradient(rgba(168,85,247,0.1) 1px, transparent 1px),
             linear-gradient(90deg, rgba(99,102,241,0.08) 1px, transparent 1px)
           `,
-          backgroundSize: '24px 24px'
-        }}></div>
+            backgroundSize: "24px 24px",
+          }}
+        ></div>
       </div>
 
       <div className="relative flex flex-col h-full">
@@ -57,11 +60,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                 disabled={isDisabled}
                 className={`
                   group relative w-full text-left rounded-xl transition-all duration-200 overflow-hidden
-                  ${isActive
-                    ? 'bg-gradient-to-r from-purple-600/25 via-indigo-600/20 to-cyan-600/15 border border-purple-400/40 shadow-lg shadow-purple-500/10'
-                    : isDisabled
-                    ? 'bg-white/5 border border-white/5 opacity-50 cursor-not-allowed'
-                    : 'bg-white/8 hover:bg-gradient-to-r hover:from-purple-600/15 hover:to-cyan-600/10 border border-white/10 hover:border-purple-400/20'
+                  ${
+                    isActive
+                      ? "bg-gradient-to-r from-purple-600/25 via-indigo-600/20 to-cyan-600/15 border border-purple-400/40 shadow-lg shadow-purple-500/10"
+                      : isDisabled
+                        ? "bg-white/5 border border-white/5 opacity-50 cursor-not-allowed"
+                        : "bg-white/8 hover:bg-gradient-to-r hover:from-purple-600/15 hover:to-cyan-600/10 border border-white/10 hover:border-purple-400/20"
                   }
                 `}
               >
@@ -73,23 +77,34 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                 <div className="relative p-3 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     {/* 图标区域 */}
-                    <div className={`
+                    <div
+                      className={`
                       p-2 rounded-lg transition-all duration-200
-                      ${isActive
-                        ? 'bg-gradient-to-br from-purple-500/30 via-indigo-500/25 to-cyan-500/20 shadow-lg scale-105'
-                        : 'bg-white/10 group-hover:bg-gradient-to-br group-hover:from-purple-500/20 group-hover:to-cyan-500/15 group-hover:scale-105'
+                      ${
+                        isActive
+                          ? "bg-gradient-to-br from-purple-500/30 via-indigo-500/25 to-cyan-500/20 shadow-lg scale-105"
+                          : "bg-white/10 group-hover:bg-gradient-to-br group-hover:from-purple-500/20 group-hover:to-cyan-500/15 group-hover:scale-105"
                       }
-                    `}>
-                      <Icon className={`w-5 h-5 transition-colors duration-200 ${
-                        isActive ? 'text-white' : 'text-white/80 group-hover:text-white'
-                      }`} />
+                    `}
+                    >
+                      <Icon
+                        className={`w-5 h-5 transition-colors duration-200 ${
+                          isActive
+                            ? "text-white"
+                            : "text-white/80 group-hover:text-white"
+                        }`}
+                      />
                     </div>
 
                     {/* 文本内容 */}
                     <div className="flex-1">
-                      <div className={`font-semibold transition-colors duration-200 ${
-                        isActive ? 'text-white' : 'text-white/90 group-hover:text-white'
-                      }`}>
+                      <div
+                        className={`font-semibold transition-colors duration-200 ${
+                          isActive
+                            ? "text-white"
+                            : "text-white/90 group-hover:text-white"
+                        }`}
+                      >
                         {item.name}
                       </div>
                       <div className="text-sm text-white/60 mt-0.5">
@@ -99,11 +114,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
                   </div>
 
                   {/* 右侧箭头指示器 */}
-                  <ChevronRight className={`w-4 h-4 transition-all duration-200 ${
-                    isActive
-                      ? 'text-white opacity-100 translate-x-0'
-                      : 'text-white/40 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0'
-                  }`} />
+                  <ChevronRight
+                    className={`w-4 h-4 transition-all duration-200 ${
+                      isActive
+                        ? "text-white opacity-100 translate-x-0"
+                        : "text-white/40 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0"
+                    }`}
+                  />
                 </div>
 
                 {/* 底部装饰线 */}

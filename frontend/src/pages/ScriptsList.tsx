@@ -1,9 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Film, Calendar, User, Star, Loader2, AlertCircle, Key, Copy, Check, RefreshCw } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useEpisodeStore } from '@store/useEpisodeStore';
-import { ScriptData } from '@store/types';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Film,
+  Calendar,
+  User,
+  Star,
+  Loader2,
+  AlertCircle,
+  Key,
+  Copy,
+  Check,
+  RefreshCw,
+} from "lucide-react";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useEpisodeStore } from "@store/useEpisodeStore";
+import { ScriptData } from "@store/types";
 
 const ScriptsList: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +29,7 @@ const ScriptsList: React.FC = () => {
   useEffect(() => {
     // If already in store, skip fetch
     if (allEpisodes) {
-      console.debug('EpisodesList: Using cached data');
+      console.debug("EpisodesList: Using cached data");
       return;
     }
 
@@ -30,15 +41,15 @@ const ScriptsList: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.debug('EpisodesList: Fetching from API');
+      console.debug("EpisodesList: Fetching from API");
       const data = await apiCall<{ scripts: ScriptData[]; count: number }>(
-        API_ENDPOINTS.getAllScripts()
+        API_ENDPOINTS.getAllScripts(),
       );
 
       setAllEpisodes(data.scripts);
     } catch (err) {
-      console.error('Error fetching episodes:', err);
-      setError('获取剧集列表失败');
+      console.error("Error fetching episodes:", err);
+      setError("获取剧集列表失败");
     } finally {
       setLoading(false);
     }
@@ -109,7 +120,7 @@ const ScriptsList: React.FC = () => {
             disabled={loading}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>刷新</span>
           </button>
         </div>
@@ -133,7 +144,9 @@ const ScriptsList: React.FC = () => {
                   >
                     {episode.title}
                   </h3>
-                  <p className="text-white/90 text-sm drop-shadow">第 {episode.episode_num} 集</p>
+                  <p className="text-white/90 text-sm drop-shadow">
+                    第 {episode.episode_num} 集
+                  </p>
                 </div>
                 <div className="absolute top-3 right-3">
                   <Film className="w-5 h-5 text-white/80" />
@@ -145,7 +158,12 @@ const ScriptsList: React.FC = () => {
                 {/* Key with copy button */}
                 <div className="flex items-center space-x-2 text-xs text-slate-500 group/key">
                   <Key className="w-3 h-3 flex-shrink-0" />
-                  <span className="font-mono truncate flex-1" title={episode.key}>{episode.key}</span>
+                  <span
+                    className="font-mono truncate flex-1"
+                    title={episode.key}
+                  >
+                    {episode.key}
+                  </span>
                   <button
                     onClick={(e) => handleCopyKey(e, episode.key)}
                     className="cursor-pointer p-1 hover:bg-slate-100 rounded"
@@ -179,7 +197,9 @@ const ScriptsList: React.FC = () => {
                   {episode.score !== null && (
                     <div className="flex items-center space-x-1 text-amber-600">
                       <Star className="w-4 h-4 fill-amber-400" />
-                      <span className="font-medium">{episode.score.toFixed(1)}</span>
+                      <span className="font-medium">
+                        {episode.score.toFixed(1)}
+                      </span>
                     </div>
                   )}
                 </div>

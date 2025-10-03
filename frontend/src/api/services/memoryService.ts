@@ -1,6 +1,6 @@
-import { apiCall } from '../client';
-import { API_ENDPOINTS } from '../endpoints';
-import type { Memory } from '../types';
+import { apiCall } from "../client";
+import { API_ENDPOINTS } from "../endpoints";
+import type { Memory } from "../types";
 
 export const memoryService = {
   /**

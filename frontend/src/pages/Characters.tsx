@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Loader2, AlertCircle, RefreshCw, Search, X } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useCharacterStore } from '@store/useCharacterStore';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { User, Loader2, AlertCircle, RefreshCw, Search, X } from "lucide-react";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useCharacterStore } from "@store/useCharacterStore";
 
 interface Character {
   id: number;
@@ -16,7 +16,8 @@ interface Character {
 
 const Characters: React.FC = () => {
   const navigate = useNavigate();
-  const { allCharacters, setAllCharacters, setCurrentCharacter } = useCharacterStore();
+  const { allCharacters, setAllCharacters, setCurrentCharacter } =
+    useCharacterStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -27,7 +28,7 @@ const Characters: React.FC = () => {
   useEffect(() => {
     // If already in store, skip fetch
     if (allCharacters) {
-      console.debug('Characters: Using cached data');
+      console.debug("Characters: Using cached data");
       return;
     }
 
@@ -39,15 +40,15 @@ const Characters: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.debug('Characters: Fetching from API');
+      console.debug("Characters: Fetching from API");
       const data = await apiCall<{ characters: Character[]; count: number }>(
-        API_ENDPOINTS.getAllCharacters()
+        API_ENDPOINTS.getAllCharacters(),
       );
 
       setAllCharacters(data.characters);
     } catch (err) {
-      console.error('Error fetching characters:', err);
-      setError('获取角色数据失败');
+      console.error("Error fetching characters:", err);
+      setError("获取角色数据失败");
     } finally {
       setLoading(false);
     }
@@ -115,7 +116,7 @@ const Characters: React.FC = () => {
             disabled={loading}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>刷新</span>
           </button>
         </div>
@@ -148,8 +149,12 @@ const Characters: React.FC = () => {
                 </div>
               )}
               <div className="p-4">
-                <h3 className="font-bold text-slate-800 mb-1">{character.character_name}</h3>
-                <p className="text-xs text-slate-600 mb-2">{character.drama_name} - 第{character.episode_number}集</p>
+                <h3 className="font-bold text-slate-800 mb-1">
+                  {character.character_name}
+                </h3>
+                <p className="text-xs text-slate-600 mb-2">
+                  {character.drama_name} - 第{character.episode_number}集
+                </p>
                 {character.is_key_character && (
                   <span className="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full mb-2">
                     关键角色

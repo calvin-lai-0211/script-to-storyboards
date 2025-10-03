@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MapPin, Loader2, AlertCircle, RefreshCw, Search, X } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '@api';
-import { useSceneStore } from '@store/useSceneStore';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  MapPin,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Search,
+  X,
+} from "lucide-react";
+import { API_ENDPOINTS, apiCall } from "@api";
+import { useSceneStore } from "@store/useSceneStore";
 
 interface Scene {
   id: number;
@@ -26,7 +33,7 @@ const Scenes: React.FC = () => {
   useEffect(() => {
     // If already in store, skip fetch
     if (allScenes) {
-      console.debug('Scenes: Using cached data');
+      console.debug("Scenes: Using cached data");
       return;
     }
 
@@ -38,15 +45,15 @@ const Scenes: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.debug('Scenes: Fetching from API');
+      console.debug("Scenes: Fetching from API");
       const data = await apiCall<{ scenes: Scene[]; count: number }>(
-        API_ENDPOINTS.getAllScenes()
+        API_ENDPOINTS.getAllScenes(),
       );
 
       setAllScenes(data.scenes);
     } catch (err) {
-      console.error('Error fetching scenes:', err);
-      setError('获取场景数据失败');
+      console.error("Error fetching scenes:", err);
+      setError("获取场景数据失败");
     } finally {
       setLoading(false);
     }
@@ -114,7 +121,7 @@ const Scenes: React.FC = () => {
             disabled={loading}
             className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>刷新</span>
           </button>
         </div>
@@ -147,8 +154,12 @@ const Scenes: React.FC = () => {
                 </div>
               )}
               <div className="p-4">
-                <h3 className="font-bold text-slate-800 mb-1">{scene.scene_name}</h3>
-                <p className="text-xs text-slate-600 mb-2">{scene.drama_name} - 第{scene.episode_number}集</p>
+                <h3 className="font-bold text-slate-800 mb-1">
+                  {scene.scene_name}
+                </h3>
+                <p className="text-xs text-slate-600 mb-2">
+                  {scene.drama_name} - 第{scene.episode_number}集
+                </p>
                 <p className="text-xs text-slate-500">ID: {scene.id}</p>
               </div>
             </div>

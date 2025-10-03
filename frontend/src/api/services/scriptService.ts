@@ -1,6 +1,6 @@
-import { apiCall } from '../client';
-import { API_ENDPOINTS } from '../endpoints';
-import type { ScriptsResponse, ScriptDetail } from '../types';
+import { apiCall } from "../client";
+import { API_ENDPOINTS } from "../endpoints";
+import type { ScriptsResponse, ScriptDetail } from "../types";
 
 export const scriptService = {
   /**
