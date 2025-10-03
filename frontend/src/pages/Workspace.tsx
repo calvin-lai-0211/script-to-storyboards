@@ -6,6 +6,18 @@ import StoryboardTab from "../components/tabs/StoryboardTab";
 import MemoryTab from "../components/tabs/MemoryTab";
 import WorkflowTab from "../components/tabs/WorkflowTab";
 import { useEpisodeStore } from "@store/useEpisodeStore";
+import { API_ENDPOINTS, apiCall } from "@api";
+
+interface ScriptData {
+  key: string;
+  title: string;
+  episode_num: number;
+  content: string;
+  roles: string[];
+  sceneries: string[];
+  author: string | null;
+  creation_year: number | null;
+}
 
 const Workspace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,7 +26,7 @@ const Workspace: React.FC = () => {
   const key = paramKey || searchParams.get("key") || "";
   const tabFromUrl = searchParams.get("tab") || "script";
   const [activeTab, setActiveTab] = React.useState(tabFromUrl);
-  const { currentEpisode, setCurrentEpisode, getEpisode } = useEpisodeStore();
+  const { currentEpisode, setCurrentEpisode, getEpisode, setEpisode } = useEpisodeStore();
 
   // Sync activeTab with URL
   React.useEffect(() => {
@@ -41,10 +53,38 @@ const Workspace: React.FC = () => {
         title: cachedEpisode.title,
         episode_num: cachedEpisode.episode_num,
       });
+      return;
     }
-    // If no cache, currentEpisode might be null
-    // ScriptTab will fetch the data when it mounts
-  }, [key, currentEpisode, getEpisode, setCurrentEpisode]);
+
+    // If no cache, fetch episode data from API
+    // This ensures the title is loaded even when accessing non-script tabs directly
+    const fetchEpisodeInfo = async () => {
+      try {
+        console.debug("Workspace: Fetching episode info for key:", key);
+        const data = await apiCall<ScriptData>(API_ENDPOINTS.getScript(key));
+
+        // Save to store
+        setEpisode(key, data);
+
+        // Set as current episode
+        setCurrentEpisode({
+          key: data.key,
+          title: data.title,
+          episode_num: data.episode_num,
+        });
+      } catch (err) {
+        console.error("Workspace: Error fetching episode info:", err);
+        // Set error state in currentEpisode
+        setCurrentEpisode({
+          key: key,
+          title: "加载失败",
+          episode_num: 0,
+        });
+      }
+    };
+
+    fetchEpisodeInfo();
+  }, [key, currentEpisode, getEpisode, setCurrentEpisode, setEpisode]);
 
   // 如果缺少必要参数，重定向到首页
   if (!key) {
