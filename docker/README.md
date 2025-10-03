@@ -2,6 +2,22 @@
 
 本目录包含两种 Docker 部署方式，根据需求选择：
 
+## ⚡ 快速命令
+
+```bash
+# 🔄 更新并重新部署（最常用）
+./docker/local-run.sh --build
+
+# 🚀 首次部署
+./docker/local-run.sh
+
+# 📊 查看日志
+docker-compose -f docker/compose/docker-compose.yml logs -f
+
+# 🛑 停止服务
+docker-compose -f docker/compose/docker-compose.yml down
+```
+
 ## 📁 目录结构
 
 ```
@@ -135,11 +151,25 @@ kubectl logs -f deployment/storyboard-api
 
 ### Q: 如何更新部署？
 
-```bash
-# Compose
-docker-compose pull
-docker-compose up -d
+**重要：代码更新后需要重新构建镜像！**
 
-# K8s
-cd docker/k8s && ./deploy.sh  # 会自动更新
+```bash
+# Compose - 方法 1（推荐）
+./docker/local-run.sh --build
+
+# Compose - 方法 2
+cd docker/compose
+docker-compose up -d --build
+
+# K8s - 本地 k3d/k3s
+cd docker/k8s
+./local-deploy.sh  # 会自动构建并导入新镜像
+
+# K8s - 远程服务器
+cd docker/k8s
+./deploy-to-remote.sh  # 会自动构建并传输新镜像
 ```
+
+**常见错误：**
+- ❌ 只运行 `./docker/local-run.sh` → 不会更新镜像
+- ✅ 运行 `./docker/local-run.sh --build` → 重新构建镜像
