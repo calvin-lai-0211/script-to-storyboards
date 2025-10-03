@@ -96,6 +96,11 @@ if [[ ! $REPLY =~ ^[Nn]$ ]]; then
     echo -e "${GREEN}✅ Ingress deployed on port 80${NC}"
 fi
 
+# Restart deployments to ensure new images are used
+echo -e "${YELLOW}🔄 Restarting deployments to use new images...${NC}"
+kubectl rollout restart deployment/storyboard-api
+kubectl rollout restart deployment/storyboard-frontend
+
 # Wait for deployments to be ready
 echo -e "${YELLOW}⏳ Waiting for deployments to be ready...${NC}"
 
