@@ -8,7 +8,7 @@
 - [自动部署（推荐）](#自动部署推荐)
 - [手动部署](#手动部署)
 - [访问应用](#访问应用)
-- [K8s架构说明](#k8s架构说明)
+- [K8s 架构说明](#k8s架构说明)
 - [下一步](#下一步)
 
 ---
@@ -36,11 +36,12 @@ kubectl get nodes
 ## 自动部署（推荐）
 
 项目提供了一键部署脚本，会自动完成以下步骤：
+
 1. 构建 Docker 镜像
 2. 导入镜像到 K8s 集群
 3. 部署 Redis、API、Frontend
 4. 配置 Nginx ConfigMap
-5. 可选部署 Ingress（80端口访问）
+5. 可选部署 Ingress（80 端口访问）
 
 ```bash
 cd docker/k8s
@@ -93,7 +94,7 @@ cd docker/k8s
 
 # 返回项目根目录并构建镜像
 cd ../..
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # 验证镜像已构建
 docker images | grep script-to-storyboards
@@ -201,19 +202,19 @@ curl -I http://localhost:8080/
 
 ---
 
-## K8s架构说明
+## K8s 架构说明
 
 ### 组件清单
 
 项目包含以下 Kubernetes 资源：
 
-| 资源文件 | 资源类型 | 说明 |
-|---------|---------|-----|
-| `redis-deployment.yaml` | Deployment + Service | Redis 会话存储，使用 ClusterIP |
-| `api-deployment.yaml` | Deployment + Service | FastAPI 后端服务，端口 8000 |
-| `frontend-deployment.yaml` | Deployment + Service | Vite 前端服务，端口 80 |
-| `nginx-configmap.yaml` | ConfigMap | Nginx 配置（反向代理、CORS等） |
-| `ingress.yaml` | Ingress | 统一入口，路由到 API 和 Frontend |
+| 资源文件                   | 资源类型             | 说明                             |
+| -------------------------- | -------------------- | -------------------------------- |
+| `redis-deployment.yaml`    | Deployment + Service | Redis 会话存储，使用 ClusterIP   |
+| `api-deployment.yaml`      | Deployment + Service | FastAPI 后端服务，端口 8000      |
+| `frontend-deployment.yaml` | Deployment + Service | Vite 前端服务，端口 80           |
+| `nginx-configmap.yaml`     | ConfigMap            | Nginx 配置（反向代理、CORS 等）  |
+| `ingress.yaml`             | Ingress              | 统一入口，路由到 API 和 Frontend |
 
 ### 服务依赖关系
 
@@ -239,7 +240,7 @@ Internet
 - `REDIS_HOST`: Redis 服务名 (storyboard-redis)
 - `REDIS_PORT`: Redis 端口（默认 6379）
 - `API_BASE_URL`: API 基础 URL（用于 Google OAuth 回调）
-- `GOOGLE_CLIENT_ID`: Google OAuth 客户端ID
+- `GOOGLE_CLIENT_ID`: Google OAuth 客户端 ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth 客户端密钥
 
 #### Frontend Deployment 环境变量
@@ -252,11 +253,11 @@ Internet
 
 所有组件都配置了资源请求和限制：
 
-| 组件 | CPU 请求 | CPU 限制 | 内存请求 | 内存限制 |
-|-----|---------|---------|---------|---------|
-| Redis | 100m | 500m | 128Mi | 256Mi |
-| API | 200m | 1000m | 256Mi | 512Mi |
-| Frontend | 100m | 500m | 128Mi | 256Mi |
+| 组件     | CPU 请求 | CPU 限制 | 内存请求 | 内存限制 |
+| -------- | -------- | -------- | -------- | -------- |
+| Redis    | 100m     | 500m     | 128Mi    | 256Mi    |
+| API      | 200m     | 1000m    | 256Mi    | 512Mi    |
+| Frontend | 100m     | 500m     | 128Mi    | 256Mi    |
 
 ---
 
@@ -275,5 +276,5 @@ Internet
 
 - [本地 K8s 环境搭建](local-setup.md)
 - [Kubernetes 部署总览](deployment.md)
-- [Docker Compose 部署](../docker/compose/README.md)
+- [Docker Compose 部署](../docker/README.md)
 - [API 文档](../api/README.md)

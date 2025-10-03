@@ -258,7 +258,7 @@ kubectl rollout restart deployment/storyboard-api
 
 ```bash
 # 1. 重新构建镜像
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # 2. 导入镜像到集群
 k3d image import script-to-storyboards-api:latest -c calvin

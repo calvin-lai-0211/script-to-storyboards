@@ -21,7 +21,7 @@ services:
   # API Service
   api:
     build:
-      context: ../../
+      context: ../
       dockerfile: docker/dockerfiles/api.Dockerfile
     image: script-to-storyboards-api:latest
     container_name: storyboard-api
@@ -36,10 +36,10 @@ services:
       - REDIS_PORT=6379
     volumes:
       # Mount for development (optional - comment out for production)
-      - ../../api:/app/api
-      - ../../utils:/app/utils
-      - ../../models:/app/models
-      - ../../procedure:/app/procedure
+      - ../api:/app/api
+      - ../utils:/app/utils
+      - ../models:/app/models
+      - ../procedure:/app/procedure
     depends_on:
       redis:
         condition: service_healthy
@@ -56,7 +56,7 @@ services:
   # Frontend Service
   frontend:
     build:
-      context: ../../  # 改为项目根目录，以便访问 docs/ 和 mkdocs.yml
+      context: ../  # 项目根目录，以便访问 docs/ 和 mkdocs.yml
       dockerfile: docker/dockerfiles/frontend.Dockerfile
       args:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL-http://localhost:8000}

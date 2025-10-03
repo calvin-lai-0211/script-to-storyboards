@@ -52,16 +52,19 @@ python -m api.main
 ```
 
 **访问地址**:
+
 - API: http://localhost:8001
 - API 文档: http://localhost:8001/api/docs
 - ReDoc: http://localhost:8001/api/redoc
 
 **配置说明**:
+
 - 数据库配置在 `utils/config.py` 中的 `DB_CONFIG`
-- API端口默认 8001（可通过环境变量 `API_PORT` 修改）
+- API 端口默认 8001（可通过环境变量 `API_PORT` 修改）
 - 默认启用热重载（代码修改自动重启）
 
 **常见问题**:
+
 ```bash
 # 数据库连接失败
 # 检查 utils/config.py 中的数据库配置
@@ -87,14 +90,17 @@ pnpm dev
 ```
 
 **访问地址**:
+
 - 前端: http://localhost:5173
 
 **配置说明**:
+
 - API 地址配置在 `frontend/.env` 或 `frontend/.env.local`
 - 默认 API 地址: `http://localhost:8001`
 - 支持 Vite 热模块替换（HMR）
 
 **环境变量配置** (`frontend/.env.local`):
+
 ```bash
 VITE_API_BASE_URL=http://localhost:8001
 ```
@@ -107,14 +113,12 @@ python -m api.main
 
 # 终端2: 启动前端
 cd frontend && pnpm dev
-
-# 终端3: 运行脚本处理任务（可选）
-python procedure/make_storyboards.py
 ```
 
 **调试技巧**:
+
 - 前端: 浏览器 DevTools + Vue/React DevTools
-- 后端: FastAPI 自动生成的 `/api/docs` 交互式文档
+- 后端: FastAPI 自动生成的 `/api/docs` 交互式文档，可以用这个文档来查看及调试 API
 - 日志: 使用 `console.debug()` (前端) 和 `logger.info()` (后端)
 
 ---
@@ -130,12 +134,13 @@ python procedure/make_storyboards.py
 ./docker/local-run.sh --build
 
 # 方式B: 手动执行
-cd docker/compose
+cd docker
 docker-compose build
 docker-compose up -d
 ```
 
 **访问地址**:
+
 - 前端: http://localhost:8866
 - API: http://localhost:8000
 - API 文档: http://localhost:8000/api/docs
@@ -143,7 +148,7 @@ docker-compose up -d
 ### 2. 服务管理
 
 ```bash
-cd docker/compose
+cd docker
 
 # 查看运行状态
 docker-compose ps
@@ -195,7 +200,7 @@ docker-compose exec api python from_script_to_database.py
 
 ### 5. 环境配置
 
-编辑 `docker/compose/docker-compose.yml`:
+编辑 `docker/docker-compose.yml`:
 
 ```yaml
 services:
@@ -255,15 +260,17 @@ cd docker/k8s
 ```
 
 **部署流程**:
+
 1. 构建 Docker 镜像
 2. 导入镜像到 K8s 集群
 3. 部署 Redis (会话存储)
 4. 部署 API 服务
 5. 部署 Frontend 服务
 6. 部署 Nginx ConfigMap
-7. 可选部署 Ingress（80端口访问）
+7. 可选部署 Ingress（80 端口访问）
 
 **访问地址**:
+
 - 通过 Ingress: http://localhost:8080
 - 或使用 Port Forward:
   ```bash
@@ -296,18 +303,21 @@ kubectl exec -it deployment/storyboard-api -- /bin/sh
 ### 4. 更新部署
 
 **更新 API**:
+
 ```bash
 cd docker/k8s
 ./update-api.sh
 ```
 
 **更新 Frontend**:
+
 ```bash
 cd docker/k8s
 ./update-frontend.sh
 ```
 
 **更新 ConfigMap**:
+
 ```bash
 cd docker/k8s
 ./update-config.sh
@@ -342,6 +352,7 @@ env:
 ```
 
 修改后应用：
+
 ```bash
 kubectl apply -f docker/k8s/api-deployment.yaml
 kubectl rollout restart deployment/storyboard-api
@@ -371,7 +382,7 @@ sudo k3s kubectl get nodes
 
 ### 2. 本地配置远程访问
 
-**方式A: SSH 配置** (`~/.ssh/config`):
+**方式 A: SSH 配置** (`~/.ssh/config`):
 
 ```
 Host calvin
@@ -380,7 +391,7 @@ Host calvin
     IdentityFile ~/.ssh/your-key.pem
 ```
 
-**方式B: 获取 kubeconfig**:
+**方式 B: 获取 kubeconfig**:
 
 ```bash
 # 从远程服务器复制配置
@@ -403,6 +414,7 @@ cd docker/k8s
 ```
 
 **部署流程**:
+
 1. 本地构建 Docker 镜像
 2. 打包镜像和 K8s 配置（使用生产环境配置）
 3. 上传到远程服务器
@@ -412,6 +424,7 @@ cd docker/k8s
 7. 可选部署 Ingress
 
 **注意**: 远程部署使用 `api-deployment.prod.yaml`，其中:
+
 ```yaml
 env:
   - name: API_BASE_URL
@@ -452,12 +465,14 @@ ssh calvin 'cd ~/k8s-deploy/k8s-package && ./update-api.sh'
 ### 6. 生产环境配置
 
 **Google OAuth 回调地址**:
+
 - 本地: `http://localhost:8080/api/user/google/callback`
 - 生产: `https://videos.ethanlyn.com/api/user/google/callback`
 
 在 Google Cloud Console 的 OAuth 配置中添加这两个地址。
 
 **环境变量**:
+
 - 生产环境敏感信息应使用 Kubernetes Secrets（不要硬编码在 YAML 中）
 - Redis 数据应使用 PersistentVolume（不要使用 emptyDir）
 - 启用 HTTPS（通过 cert-manager + Let's Encrypt）
@@ -466,21 +481,22 @@ ssh calvin 'cd ~/k8s-deploy/k8s-package && ./update-api.sh'
 
 ## 开发模式对比
 
-| 特性 | 本地开发 | Docker Compose | 本地 K8s | 远程 K8s |
-|-----|---------|---------------|---------|---------|
-| **启动速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐ |
-| **热重载** | ✅ | ❌ | ❌ | ❌ |
-| **调试便利性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐ |
-| **环境隔离** | ❌ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **生产相似度** | ⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **资源消耗** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐ |
-| **适用场景** | 日常开发 | 集成测试 | K8s学习 | 生产部署 |
+| 特性           | 本地开发   | Docker Compose | 本地 K8s | 远程 K8s   |
+| -------------- | ---------- | -------------- | -------- | ---------- |
+| **启动速度**   | ⭐⭐⭐⭐⭐ | ⭐⭐⭐         | ⭐⭐     | ⭐         |
+| **热重载**     | ✅         | ❌             | ❌       | ❌         |
+| **调试便利性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐         | ⭐⭐     | ⭐         |
+| **环境隔离**   | ❌         | ⭐⭐⭐         | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **生产相似度** | ⭐         | ⭐⭐⭐         | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **资源消耗**   | ⭐⭐       | ⭐⭐⭐         | ⭐⭐⭐⭐ | ⭐         |
+| **适用场景**   | 日常开发   | 集成测试       | K8s 学习 | 生产部署   |
 
 ---
 
 ## 常用开发命令速查
 
 ### 前端开发
+
 ```bash
 cd frontend
 pnpm dev          # 启动开发服务器
@@ -491,6 +507,7 @@ pnpm type-check   # 类型检查
 ```
 
 ### 后端开发
+
 ```bash
 python -m api.main                    # 启动 API
 python utils/database.py              # 初始化数据库
@@ -499,6 +516,7 @@ python demo_make_storyboards_from_scripts.py  # 生成分镜
 ```
 
 ### Docker
+
 ```bash
 docker-compose up -d      # 启动服务
 docker-compose logs -f    # 查看日志
@@ -507,6 +525,7 @@ docker-compose down       # 停止服务
 ```
 
 ### Kubernetes
+
 ```bash
 kubectl get pods              # 查看 Pod
 kubectl logs -f <pod>         # 查看日志
@@ -527,16 +546,21 @@ kubectl rollout restart deployment/<name>  # 重启部署
 ## 常见问题
 
 ### Q: 前端无法连接后端 API？
+
 A: 检查前端 `.env.local` 中的 `VITE_API_BASE_URL` 是否正确，确保后端 API 已启动。
 
 ### Q: Docker Compose 启动失败？
+
 A: 检查端口是否被占用（8866, 8000），使用 `docker-compose logs` 查看错误信息。
 
 ### Q: K8s Pod 一直 Pending？
+
 A: 检查镜像是否成功导入 (`kubectl describe pod <pod-name>`)，确保资源限制合理。
 
 ### Q: 数据库连接失败？
+
 A: 确认数据库配置正确，网络可达，防火墙允许连接。
 
 ### Q: 如何切换不同的开发模式？
+
 A: 确保停止之前的服务，避免端口冲突。各模式可以并存，但需要调整端口。

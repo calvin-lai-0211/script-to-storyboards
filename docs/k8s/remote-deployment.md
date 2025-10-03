@@ -79,7 +79,7 @@ yourdomain.com  →  your-server-ip
 
 ## 一键部署
 
-### 方式1: 在服务器上直接部署
+### 方式 1: 在服务器上直接部署
 
 ```bash
 # 1. 克隆项目到服务器
@@ -91,7 +91,7 @@ vim docker/k8s/api-deployment.yaml
 # 修改 DB_HOST, GOOGLE_CLIENT_ID 等环境变量
 
 # 3. 构建镜像
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # 4. 导入镜像到 k3s
 docker save script-to-storyboards-api:latest | sudo k3s ctr images import -
@@ -109,11 +109,11 @@ kubectl apply -f ingress.yaml
 kubectl wait --for=condition=available --timeout=180s deployment/storyboard-api
 ```
 
-### 方式2: 从本地推送镜像到服务器
+### 方式 2: 从本地推送镜像到服务器
 
 ```bash
 # 1. 本地构建镜像
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # 2. 保存镜像为文件
 docker save script-to-storyboards-api:latest > api.tar
@@ -130,7 +130,7 @@ sudo k3s ctr images import /tmp/frontend.tar
 # 5. 部署应用（同方式1步骤5-6）
 ```
 
-### 方式3: 使用私有镜像仓库（推荐）
+### 方式 3: 使用私有镜像仓库（推荐）
 
 ```bash
 # 1. 本地推送镜像到私有仓库

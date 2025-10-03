@@ -10,13 +10,15 @@
 -   **LLM驱动的分镜生成**: 利用大型语言模型（Gemini 2.5 Pro）将剧本转化为结构化的、符合导演风格（例如：亚利桑德罗·冈萨雷斯·伊纳里图）的JSON格式分镜脚本
 -   **角色肖像自动生成**: 分析剧本并为每个角色生成高质量的图像，支持 Qwen Image 和 Jimeng 模型
 -   **场景关键帧自动生成**: 从分镜脚本中提取场景并生成关键帧图片
+-   **道具图片生成**: 支持道具描述编辑和一键生成道具图片
 -   **剧集记忆管理**: 自动生成和存储剧集摘要，支持跨集引用
+-   **Google OAuth 认证**: 安全的用户登录系统，基于 Redis 会话管理
 
 ### 技术架构
 
 -   **前端**: React 18 + TypeScript + Vite + Tailwind CSS 4
 -   **后端**: FastAPI + Python
--   **数据库**: PostgreSQL
+-   **数据库**: PostgreSQL + Redis
 -   **AI模型**: Gemini 2.5 Pro (LLM) + Qwen/Jimeng (图像生成)
 -   **部署**: Docker + Kubernetes
 
@@ -76,6 +78,7 @@ script-to-storyboards/
 - Node.js 18+
 - Python 3.10+
 - PostgreSQL 14+
+- Redis 6+ (用于会话管理)
 - Docker (可选，用于容器化部署)
 
 ### 1. 克隆项目
@@ -85,14 +88,21 @@ git clone https://github.com/calvin-lai-0211/script-to-storyboards.git
 cd script-to-storyboards
 ```
 
-### 2. 配置数据库
+### 2. 配置环境
 
 ```bash
+# 启动 Redis
+redis-server
+
 # 初始化数据库表
 python utils/database.py
 ```
 
-在 `utils/config.py` 中配置数据库连接信息。
+在 `utils/config.py` 中配置：
+- 数据库连接信息
+- Google OAuth 凭证（CLIENT_ID、CLIENT_SECRET）
+- Redis 连接信息
+- AI 模型 API Keys
 
 ### 3. 启动后端 API
 
@@ -102,22 +112,24 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8001
 ```
 
-访问 API 文档：http://localhost:8001/docs
+访问 API 文档：http://localhost:8001/api/docs
 
 ### 4. 启动前端
 
 ```bash
 cd frontend
-npm install
+pnpm install
 
-# 启用 Git hooks（可选）
+# 启用 Git hooks（推荐）
 git config core.hooksPath .githooks
 
 # 启动开发服务器
-npm run dev
+pnpm run dev
 ```
 
 访问前端：http://localhost:5173
+
+**首次访问需要 Google 登录**，系统会自动跳转到 OAuth 授权页面。
 
 ### 5. 运行测试
 
@@ -125,13 +137,16 @@ npm run dev
 cd frontend
 
 # 运行所有测试
-npm run test:run
+pnpm test:run
 
 # 类型检查
-npm run type-check
+pnpm type-check
 
 # Lint 检查
-npm run lint
+pnpm lint
+
+# 格式化检查
+pnpm pretty:check
 ```
 
 ## 📖 使用流程
@@ -192,9 +207,11 @@ python procedure/generate_memory_for_episodes.py
 
 ### 核心特性
 
+- **🔐 Google 登录**: OAuth 2.0 认证，基于 Redis 会话管理
 - **📝 剧本管理**: 查看所有剧集、原文内容
 - **🎬 分镜浏览**: 层级化展示场景→镜头→子镜头
-- **👤 角色资产**: 管理角色肖像和描述
+- **👤 角色资产**: 管理角色肖像和描述，支持编辑和生成图片
+- **🎭 道具资产**: 管理道具图片，支持编辑描述和一键生成
 - **🏞️ 场景资产**: 管理场景关键帧
 - **🧠 剧集记忆**: 查看剧集摘要
 - **🔄 智能缓存**: 双重缓存策略（请求去重 + Zustand Store）
@@ -206,28 +223,35 @@ python procedure/generate_memory_for_episodes.py
 - **状态持久化**: URL 参数保存 Tab 状态
 - **手动刷新**: 每个 Tab 都有刷新按钮
 - **类型安全**: 完整的 TypeScript 类型定义
-- **测试覆盖**: 54 个单元测试，100% 通过率
-- **代码质量**: Pre-commit hooks 自动检查
+- **测试覆盖**: 59 个单元测试，100% 通过率
+- **代码质量**: Pre-commit hooks 自动检查（测试、类型检查、Lint）
 
-详见：[前端架构文档](docs/frontend/architecture.md)
+详见：[前端开发文档](docs/frontend/README.md)
 
 ## 🔌 API 文档
 
 ### 快速访问
 
-- **Swagger UI**: http://localhost:8001/docs
-- **ReDoc**: http://localhost:8001/redoc
+- **Swagger UI**: http://localhost:8001/api/docs
+- **ReDoc**: http://localhost:8001/api/redoc
 
 ### 主要端点
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
+| `/api/user/google/login` | GET | Google OAuth 登录 |
+| `/api/user/info` | GET | 获取当前用户信息 |
 | `/api/scripts` | GET | 获取所有剧本 |
 | `/api/scripts/{key}` | GET | 获取剧本详情 |
 | `/api/storyboards/{key}` | GET | 获取分镜数据 |
 | `/api/characters/all` | GET | 获取所有角色 |
+| `/api/character/{id}/generate-image` | POST | 生成角色肖像 |
+| `/api/props/all` | GET | 获取所有道具 |
+| `/api/prop/{id}/generate-image` | POST | 生成道具图片 |
 | `/api/scenes/all` | GET | 获取所有场景 |
 | `/api/memory/{key}` | GET | 获取剧集摘要 |
+
+**注意**: 除了 OAuth 相关端点外，所有 API 都需要登录认证。
 
 详见：[API 文档](docs/api/README.md)
 
@@ -263,19 +287,19 @@ kubectl get pods -n storyboards
 cd frontend
 
 # 运行所有测试
-npm run test:run
+pnpm test:run
 
 # 测试 UI
-npm run test:ui
+pnpm test:ui
 
 # 测试覆盖率
-npm run test:cov
+pnpm test:cov
 ```
 
 **测试覆盖**:
 - API 层: 33 个测试
-- Store 层: 21 个测试
-- 总计: 54 个测试 ✅
+- Store 层: 26 个测试
+- 总计: 59 个测试 ✅
 
 ### 代码质量
 
@@ -287,17 +311,32 @@ git config core.hooksPath .githooks
 ```
 
 每次提交前自动运行：
-1. 单元测试
+1. 单元测试（59 个测试）
 2. TypeScript 类型检查
 3. ESLint 代码规范检查
+4. Prettier 格式化检查
 
 ## 📚 文档
 
-- [前端架构文档](docs/frontend/architecture.md)
-- [API 文档](docs/api/README.md)
-- [Docker 部署](docs/DOCKER.md)
+### 开发文档
+- [快速开始](docs/dev/getting-started.md) - 4 种开发模式详解
+- [Git Hooks & CI](docs/dev/git-hooks-and-ci.md) - 代码质量保障
+
+### 前端文档
+- [前端开发指南](docs/frontend/README.md)
+- [项目结构](docs/frontend/project-structure.md)
+- [状态管理](docs/frontend/state-management.md)
+- [API 集成](docs/frontend/api-integration.md)
+- [测试指南](docs/frontend/testing.md)
+
+### 部署文档
 - [K8s 部署](docs/k8s/README.md)
-- [CLAUDE.md](CLAUDE.md) - 项目概览
+- [本地 K8s 设置](docs/k8s/local-setup.md)
+- [远程部署](docs/k8s/remote-deployment.md)
+- [运维手册](docs/k8s/operations.md)
+
+### 其他
+- [CLAUDE.md](CLAUDE.md) - AI 开发助手指南
 
 ## 🛠️ 技术栈
 
@@ -316,7 +355,8 @@ git config core.hooksPath .githooks
 - FastAPI
 - Python 3.10+
 - PostgreSQL
-- SQLAlchemy
+- Redis (会话管理)
+- Google OAuth 2.0
 
 ### AI 模型
 
@@ -326,9 +366,10 @@ git config core.hooksPath .githooks
 
 ### DevOps
 
-- Docker
-- Kubernetes
-- Git Hooks
+- Docker & Docker Compose
+- Kubernetes (k3d/k3s)
+- GitHub Actions (CI/CD)
+- Git Hooks (Pre-commit)
 
 ## 🔄 开发工作流
 

@@ -52,6 +52,7 @@ Events:
 ```
 
 **原因**：
+
 - 镜像未导入到 k3d/k3s 集群
 - 镜像名称或标签错误
 - 镜像仓库连接失败
@@ -93,6 +94,7 @@ Last State:     Terminated
 ```
 
 **原因**：
+
 - 环境变量配置错误
 - 依赖服务未就绪（如 Redis、数据库）
 - 应用代码错误
@@ -473,7 +475,7 @@ kubectl get deployment storyboard-api -o yaml | grep imagePullPolicy
 ```bash
 # 方式1: 重新导入并强制重启
 # 1. 重新构建镜像
-docker-compose -f docker/compose/docker-compose.yml build
+docker-compose -f docker/docker-compose.yml build
 
 # 2. 导入到集群
 k3d image import script-to-storyboards-api:latest -c calvin --overwrite

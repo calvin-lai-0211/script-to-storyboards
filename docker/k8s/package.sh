@@ -35,7 +35,7 @@ fi
 echo -e "${YELLOW}🐳 Building Docker images for linux/amd64...${NC}"
 # Build for AMD64 platform (Ubuntu server) with K8s remote env
 echo "Building with VITE_API_BASE_URL=${VITE_API_BASE_URL}..."
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose -f docker/compose/docker-compose.yml build
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker-compose -f docker/docker-compose.yml build
 # Build for ARM64 platform (Apple M1/M2)
 # DOCKER_DEFAULT_PLATFORM=linux/arm64 docker-compose build
 

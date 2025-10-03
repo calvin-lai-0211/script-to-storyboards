@@ -34,7 +34,7 @@ API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8001")
 
 ```bash
 # Docker Compose
-cd docker/compose
+cd docker
 docker-compose up -d redis
 
 # 或本地启动（端口 6379）
@@ -89,7 +89,7 @@ kubectl apply -f docker/k8s/api-deployment.yaml
 
 ### Docker Compose
 
-修改 `docker/compose/docker-compose.yml` 中的环境变量：
+修改 `docker/docker-compose.yml` 中的环境变量：
 
 ```yaml
 api:
@@ -123,14 +123,14 @@ docker-compose up -d
 
 ### API 端点
 
-| 端点 | 方法 | 说明 | 认证 |
-|------|------|------|------|
-| `/api/user/check-login` | GET | 检查登录状态 | 否 |
-| `/api/user/logout` | POST | 退出登录 | 否 |
-| `/api/user/google/callback` | GET | Google OAuth 回调 | 否 |
-| `/api/storyboards/*` | GET/POST | 故事板相关 | 是 |
-| `/api/characters/*` | GET/POST | 角色相关 | 是 |
-| `/api/scenes/*` | GET/POST | 场景相关 | 是 |
+| 端点                        | 方法     | 说明              | 认证 |
+| --------------------------- | -------- | ----------------- | ---- |
+| `/api/user/check-login`     | GET      | 检查登录状态      | 否   |
+| `/api/user/logout`          | POST     | 退出登录          | 否   |
+| `/api/user/google/callback` | GET      | Google OAuth 回调 | 否   |
+| `/api/storyboards/*`        | GET/POST | 故事板相关        | 是   |
+| `/api/characters/*`         | GET/POST | 角色相关          | 是   |
+| `/api/scenes/*`             | GET/POST | 场景相关          | 是   |
 
 ### 前端集成示例
 
@@ -138,8 +138,8 @@ docker-compose up -d
 
 ```javascript
 async function checkLogin() {
-  const response = await fetch('/api/user/check-login', {
-    credentials: 'include'  // 重要：发送 cookies
+  const response = await fetch("/api/user/check-login", {
+    credentials: "include", // 重要：发送 cookies
   });
 
   const data = await response.json();
@@ -149,7 +149,7 @@ async function checkLogin() {
     window.location.href = data.data.auth_url;
   } else {
     // 已登录
-    console.log('当前用户:', data.data.user);
+    console.log("当前用户:", data.data.user);
   }
 }
 ```
@@ -159,7 +159,7 @@ async function checkLogin() {
 ```javascript
 async function fetchStoryboards(key) {
   const response = await fetch(`/api/storyboards/${key}`, {
-    credentials: 'include'  // 自动发送 session cookie
+    credentials: "include", // 自动发送 session cookie
   });
 
   if (response.status === 401) {
@@ -175,12 +175,12 @@ async function fetchStoryboards(key) {
 
 ```javascript
 async function logout() {
-  await fetch('/api/user/logout', {
-    method: 'POST',
-    credentials: 'include'
+  await fetch("/api/user/logout", {
+    method: "POST",
+    credentials: "include",
   });
 
-  window.location.href = '/';
+  window.location.href = "/";
 }
 ```
 
@@ -294,6 +294,7 @@ CREATE INDEX idx_users_open_id_platform ON users(open_id, platform) WHERE is_del
 **原因**: Google 回调的 redirect_uri 与 Google Cloud Console 配置不匹配
 
 **解决方法**:
+
 1. 检查当前 `API_BASE_URL` 环境变量值
 2. 确认完整 redirect_uri: `{API_BASE_URL}/api/user/google/callback`
 3. 在 Google Cloud Console 中添加对应的 redirect_uri
@@ -312,12 +313,14 @@ echo $API_BASE_URL
 系统会自动降级到内存存储（fallback），但重启后 session 会丢失。
 
 **检查 Redis 连接**:
+
 ```bash
 redis-cli ping
 # 返回 PONG 表示正常
 ```
 
 **查看日志**:
+
 ```
 WARNING: Failed to connect to Redis: ... Using in-memory fallback.
 ```
@@ -325,11 +328,13 @@ WARNING: Failed to connect to Redis: ... Using in-memory fallback.
 ### Session 验证失败
 
 **常见原因**:
+
 1. Cookie 未发送 → 前端请求添加 `credentials: 'include'`
 2. Session 已过期 → 重新登录
 3. Redis 数据丢失 → 检查 Redis 持久化配置
 
 **调试方法**:
+
 ```bash
 # 查看 Redis 中的 session
 redis-cli
@@ -340,13 +345,13 @@ TTL st_session:{session_id}
 
 ## 环境变量参考
 
-| 变量名 | 说明 | 默认值 | 示例 |
-|--------|------|--------|------|
-| `API_BASE_URL` | API 服务域名 | `http://localhost:8001` | `https://yourdomain.com` |
-| `REDIS_HOST` | Redis 主机地址 | `localhost` | `redis-service` |
-| `REDIS_PORT` | Redis 端口 | `6379` | `6379` |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | - | `123456.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | - | `GOCSPX-xxx` |
+| 变量名                 | 说明                       | 默认值                  | 示例                                |
+| ---------------------- | -------------------------- | ----------------------- | ----------------------------------- |
+| `API_BASE_URL`         | API 服务域名               | `http://localhost:8001` | `https://yourdomain.com`            |
+| `REDIS_HOST`           | Redis 主机地址             | `localhost`             | `redis-service`                     |
+| `REDIS_PORT`           | Redis 端口                 | `6379`                  | `6379`                              |
+| `GOOGLE_CLIENT_ID`     | Google OAuth Client ID     | -                       | `123456.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | -                       | `GOCSPX-xxx`                        |
 
 ## 安全建议
 

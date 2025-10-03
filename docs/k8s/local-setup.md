@@ -22,7 +22,7 @@
 
 ### 可选工具
 
-- **k9s**: Kubernetes 终端UI工具（推荐）
+- **k9s**: Kubernetes 终端 UI 工具（推荐）
 - **helm**: Kubernetes 包管理器
 
 ---
@@ -209,5 +209,5 @@ kubectl config use-context k3d-calvin-test
 ## 相关文档
 
 - [Kubernetes 部署总览](deployment.md)
-- [Docker Compose 部署](../docker/compose/README.md)
+- [Docker Compose 部署](../docker/README.md)
 - [项目总览](../../README.md)

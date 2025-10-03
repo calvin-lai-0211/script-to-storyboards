@@ -7,7 +7,7 @@ echo "🔄 Updating API code in K8s..."
 echo "📦 Step 1/3: Rebuilding Docker image..."
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR/../.."
-docker-compose -f docker/compose/docker-compose.yml build api
+docker-compose -f docker/docker-compose.yml build api
 
 # 2. Import to k3d
 echo "📥 Step 2/3: Importing to k3d..."
