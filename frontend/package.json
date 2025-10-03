@@ -13,7 +13,7 @@
     "test:cov": "vitest --coverage --run",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc -b --noEmit",
+    "type-check": "tsc --noEmit",
     "pretty": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
     "pretty:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "preview": "vite preview"

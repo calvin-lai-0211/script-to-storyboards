@@ -2,6 +2,11 @@
 
 剧本转分镜自动化内容创作系统
 
+## API 文档和工具
+
+- [Swagger UI](/api/docs) - 交互式 API 测试工具 (可直接调用接口)
+- [ReDoc](/api/redoc) - 美观的 API 文档阅读界面 (类型定义展示更清晰)
+
 ## 项目概览
 
 **Script-to-Storyboards** 是一个自动化内容创作流水线，能够将文本剧本转换为带有角色肖像和场景关键帧的可视化分镜。系统结合了大语言模型（Gemini 2.5 Pro）和文本生图模型（Qwen Image、Jimeng），生成结构化的分镜脚本和视觉资产，灵感来源于导演 Alejandro González Iñárritu 的电影风格。
@@ -17,37 +22,39 @@
 ## 技术栈
 
 ### 后端
+
 - **FastAPI**：高性能异步 API 框架
 - **PostgreSQL**：关系型数据库，存储剧本和分镜数据
 - **Python 3.12**：AI 模型集成和数据处理
 
 ### 前端
+
 - **React 18 + TypeScript**：类型安全的现代前端
 - **Vite**：快速的构建工具
 - **Zustand**：轻量级状态管理
 - **Tailwind CSS**：实用优先的 CSS 框架
 
 ### AI 模型
+
 - **Gemini 2.5 Pro**：分镜脚本生成
 - **Qwen Image / Jimeng**：文本生成图像
 - **RunningHub API**：统一的模型调用接口
 
 ### 部署
+
 - **Docker**：容器化部署
 - **Kubernetes (K3s)**：生产环境编排
 - **GitHub Actions**：CI/CD 自动化
 
 ## 快速导航
 
-### 在线文档和工具
-- [Swagger UI](/api/docs) - 交互式 API 测试工具 (可直接调用接口)
-- [ReDoc](/api/redoc) - 美观的 API 文档阅读界面 (类型定义展示更清晰)
-
 ### 开发文档
+
 - [API 文档](api/README.md) - FastAPI 接口完整说明，包含 TypeScript 类型定义
 - [前端架构](frontend/architecture.md) - React 组件结构和状态管理
 
 ### 部署文档
+
 - [Docker 部署](DOCKER.md) - 本地开发和测试部署
 - [K8s 快速开始](k8s/QUICKSTART.md) - Kubernetes 生产部署
 - [远程部署](k8s/REMOTE-DEPLOY.md) - 一键部署到远程 K3s 服务器
@@ -124,13 +131,16 @@ script-to-storyboards/
 ## 配置要求
 
 ### 开发环境
+
 - Python 3.12+
 - Node.js 20+
 - PostgreSQL 15+
 - Docker & Docker Compose
 
 ### API 密钥
+
 需要在 `utils/config.py` 中配置：
+
 - `YIZHAN_API_CONFIG`：LLM API 密钥（Gemini、DeepSeek）
 - `RUNNINGHUB_API_CONFIG`：RunningHub API 密钥（文本生图）
 
