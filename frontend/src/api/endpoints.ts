@@ -28,6 +28,10 @@ export const API_ENDPOINTS = {
   getAllProps: () => `${API_BASE_URL}/api/props/all`,
   getProp: (id: string | number) => `${API_BASE_URL}/api/prop/${id}`,
   generateProps: () => `${API_BASE_URL}/api/props/generate`,
+  updatePropPrompt: (id: string | number) =>
+    `${API_BASE_URL}/api/prop/${id}/prompt`,
+  generatePropImage: (id: string | number) =>
+    `${API_BASE_URL}/api/prop/${id}/generate-image`,
 
   // Scripts endpoints
   getAllScripts: () => `${API_BASE_URL}/api/scripts`,

@@ -67,6 +67,58 @@ describe("useCharacterStore", () => {
     });
   });
 
+  describe("updateCharacter", () => {
+    it("should update a character in allCharacters list", () => {
+      const mockCharacters: CharacterData[] = [
+        {
+          id: 1,
+          character_name: "Char 1",
+          drama_name: "Drama 1",
+          episode_number: 1,
+          image_url: null,
+          image_prompt: "Prompt 1",
+          is_key_character: true,
+        },
+        {
+          id: 2,
+          character_name: "Char 2",
+          drama_name: "Drama 1",
+          episode_number: 1,
+          image_url: null,
+          image_prompt: "Prompt 2",
+          is_key_character: false,
+        },
+      ];
+
+      useCharacterStore.getState().setAllCharacters(mockCharacters);
+
+      // Update character with id 1
+      useCharacterStore.getState().updateCharacter(1, {
+        image_url: "https://example.com/image.jpg",
+        image_prompt: "Updated prompt",
+      });
+
+      const { allCharacters } = useCharacterStore.getState();
+      expect(allCharacters).not.toBeNull();
+      expect(allCharacters![0].image_url).toBe(
+        "https://example.com/image.jpg",
+      );
+      expect(allCharacters![0].image_prompt).toBe("Updated prompt");
+      // Other fields should remain unchanged
+      expect(allCharacters![0].character_name).toBe("Char 1");
+      expect(allCharacters![1]).toEqual(mockCharacters[1]); // Second character unchanged
+    });
+
+    it("should do nothing if allCharacters is null", () => {
+      useCharacterStore.getState().updateCharacter(1, {
+        image_url: "https://example.com/image.jpg",
+      });
+
+      const { allCharacters } = useCharacterStore.getState();
+      expect(allCharacters).toBeNull();
+    });
+  });
+
   describe("clearAll", () => {
     it("should clear all store data", () => {
       const mockCharacter: CharacterData = {

@@ -22,7 +22,7 @@ interface CharacterData {
 
 const CharacterViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { currentCharacter } = useCharacterStore();
+  const { currentCharacter, updateCharacter } = useCharacterStore();
   const [characterData, setCharacterData] = useState<CharacterData | null>(
     null,
   );
@@ -100,13 +100,23 @@ const CharacterViewer: React.FC = () => {
       );
 
       // Update character data with new image URL and prompt
-      setCharacterData({
+      const updatedData = {
         ...characterData,
         image_url: result.image_url as string,
         image_prompt: promptToUse,
-      });
+      };
+      setCharacterData(updatedData);
       setEditedPrompt(promptToUse);
       setIsEditingPrompt(false);
+
+      // Update store to refresh list page
+      if (id) {
+        updateCharacter(Number(id), {
+          image_url: result.image_url as string,
+          image_prompt: promptToUse,
+        });
+      }
+
       console.debug("Image generated successfully:", result.image_url);
     } catch (err) {
       console.error("Error generating image:", err);

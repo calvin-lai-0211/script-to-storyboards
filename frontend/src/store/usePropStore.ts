@@ -10,6 +10,9 @@ interface PropStore {
   allProps: PropData[] | null;
   setAllProps: (data: PropData[]) => void;
 
+  // Update a single prop in the list
+  updateProp: (id: number, updates: Partial<PropData>) => void;
+
   // Clear all cache
   clearAll: () => void;
 }
@@ -25,6 +28,16 @@ export const usePropStore = create<PropStore>((set) => ({
 
   setAllProps: (data) => {
     set({ allProps: data });
+  },
+
+  updateProp: (id, updates) => {
+    set((state) => ({
+      allProps: state.allProps
+        ? state.allProps.map((prop) =>
+            prop.id === id ? { ...prop, ...updates } : prop
+          )
+        : null,
+    }));
   },
 
   clearAll: () => {

@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Package, Sparkles, AlertCircle, Star } from "lucide-react";
+import {
+  Package,
+  Sparkles,
+  AlertCircle,
+  Star,
+  Edit,
+  Save,
+  Wand2,
+} from "lucide-react";
 import ImageDisplay from "../components/ImageDisplay";
 import BackButton from "../components/BackButton";
 import { API_ENDPOINTS, apiCall } from "@api";
@@ -23,10 +31,14 @@ interface PropData {
 
 const PropViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { currentProp } = usePropStore();
+  const { currentProp, updateProp } = usePropStore();
   const [propData, setPropData] = useState<PropData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false);
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
+  const [saving, setSaving] = useState<boolean>(false);
+  const [generating, setGenerating] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) {
@@ -40,11 +52,84 @@ const PropViewer: React.FC = () => {
     try {
       const data = await apiCall<any>(API_ENDPOINTS.getProp(propId));
       setPropData(data as PropData);
+      setEditedPrompt(data.image_prompt as string);
     } catch (err) {
       console.error("Error fetching prop data:", err);
       setError("获取道具数据失败，请检查网络或服务器。");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!propData || !id) return;
+
+    setSaving(true);
+    try {
+      await apiCall(API_ENDPOINTS.updatePropPrompt(id), {
+        method: "PUT",
+        body: JSON.stringify({ image_prompt: editedPrompt }),
+      });
+
+      setPropData({ ...propData, image_prompt: editedPrompt });
+      setIsEditingPrompt(false);
+    } catch (err) {
+      console.error("Error saving prompt:", err);
+      alert("保存失败，请重试。");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!propData || !id) return;
+
+    // Use editedPrompt if editing, otherwise use current prompt
+    const promptToUse = isEditingPrompt
+      ? editedPrompt
+      : propData.image_prompt;
+
+    if (!promptToUse || promptToUse.trim() === "") {
+      alert("请先添加道具描述后再生成图片");
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const result = await apiCall<any>(
+        API_ENDPOINTS.generatePropImage(id),
+        {
+          method: "POST",
+          body: JSON.stringify({
+            image_prompt: promptToUse,
+          }),
+        },
+      );
+
+      // Update prop data with new image URL and prompt
+      const updatedData = {
+        ...propData,
+        image_url: result.image_url as string,
+        image_prompt: promptToUse,
+      };
+      setPropData(updatedData);
+      setEditedPrompt(promptToUse);
+      setIsEditingPrompt(false);
+
+      // Update store to refresh list page
+      if (id) {
+        updateProp(Number(id), {
+          image_url: result.image_url as string,
+          image_prompt: promptToUse,
+        });
+      }
+
+      console.debug("Image generated successfully:", result.image_url);
+    } catch (err) {
+      console.error("Error generating image:", err);
+      alert("生成图片失败，请检查网络或稍后重试。");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -181,20 +266,71 @@ const PropViewer: React.FC = () => {
                   )}
               </div>
 
-              {/* 道具描述 - Image Prompt */}
+              {/* 道具描述 - Image Prompt - 可编辑 */}
               <div className="bg-white border-2 border-slate-300 rounded-2xl shadow-lg transition-shadow duration-300 hover:shadow-xl p-6 flex flex-col h-[350px]">
-                <div className="flex items-center mb-3 flex-shrink-0 h-8">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0 h-8">
                   <h3 className="font-display font-bold text-slate-800 text-lg flex items-center">
                     <Sparkles className="w-5 h-5 text-pink-500 mr-2" />
                     道具描述
                   </h3>
+                  {!isEditingPrompt ? (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={generating}
+                        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      >
+                        <Wand2 className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {generating ? "生成中..." : "生成图片"}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setIsEditingPrompt(true)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors duration-200"
+                      >
+                        <Edit className="w-4 h-4" />
+                        <span className="text-sm font-medium">编辑</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setIsEditingPrompt(false);
+                          setEditedPrompt(propData?.image_prompt || "");
+                        }}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-200 text-sm font-medium"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleSavePrompt}
+                        disabled={saving}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {saving ? "保存中..." : "保存"}
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="animate-pulse text-slate-400">
                       加载中...
                     </div>
                   </div>
+                ) : isEditingPrompt ? (
+                  <textarea
+                    value={editedPrompt}
+                    onChange={(e) => setEditedPrompt(e.target.value)}
+                    className="flex-1 w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-slate-800 placeholder-slate-500 resize-none focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-colors duration-200"
+                    placeholder="描述道具的外观、材质、颜色等细节..."
+                  />
                 ) : (
                   <div className="flex-1 overflow-y-auto prose max-w-none">
                     <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">

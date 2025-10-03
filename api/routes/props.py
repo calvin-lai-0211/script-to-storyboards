@@ -12,12 +12,16 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.generate_key_prop_definitions import KeyPropDefinitionGenerator
+from models.jimeng_t2i_RH import JimengT2IRH
 from api.middleware.auth import require_auth, UserPrincipal
 from api.schemas import (
     GenerateDefinitionsRequest,
+    GenerateImageRequest,
     StatusResponse,
     ApiResponse,
-    PropListResponse
+    PropListResponse,
+    PropDetailResponse,
+    GeneratePropImageResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -34,7 +38,7 @@ def get_db():
     finally:
         pass
 
-@router.get("/prop/{prop_id}")
+@router.get("/prop/{prop_id}", response_model=PropDetailResponse)
 async def get_prop(prop_id: int, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
     """
     Get prop details by ID.
@@ -131,5 +135,142 @@ async def generate_props(request: GenerateDefinitionsRequest, response: Response
         )
     except Exception as e:
         logger.error(f"Error generating props: {e}")
+        response.status_code = 500
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.put("/prop/{prop_id}/prompt")
+async def update_prop_prompt(prop_id: int, request: dict, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
+    """
+    Update prop image prompt.
+    """
+    try:
+        image_prompt = request.get("image_prompt")
+        if not image_prompt:
+            response.status_code = 400
+            return ApiResponse.error(code=400, message="image_prompt is required")
+
+        # First verify the prop exists
+        query_check = "SELECT id FROM key_prop_definitions WHERE id = %s"
+        results = db.fetch_query(query_check, (prop_id,))
+
+        if not results:
+            return ApiResponse.error(code=404, message="未找到该道具")
+
+        # Update the prompt
+        conn = db._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE key_prop_definitions SET image_prompt = %s WHERE id = %s",
+                    (image_prompt, prop_id)
+                )
+                conn.commit()
+        finally:
+            conn.close()
+
+        return ApiResponse.success(
+            data={"prop_id": prop_id},
+            message="Prompt updated successfully"
+        )
+    except Exception as e:
+        logger.error(f"Error updating prop prompt: {e}")
+        response.status_code = 500
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.post("/prop/{prop_id}/generate-image", response_model=GeneratePropImageResponse)
+async def generate_prop_image(prop_id: int, request: GenerateImageRequest, response: Response, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
+    """
+    Generate prop image using Jimeng text-to-image.
+    Accepts prompt in request body, queries other data from database.
+    """
+    try:
+        # Get image prompt from request
+        image_prompt = request.image_prompt
+
+        if not image_prompt or not image_prompt.strip():
+            response.status_code = 400
+            return ApiResponse.error(code=400, message="image_prompt is required")
+
+        # Query prop info from database
+        query = """
+            SELECT prop_name, drama_name, episode_number
+            FROM key_prop_definitions
+            WHERE id = %s
+        """
+        results = db.fetch_query(query, (prop_id,))
+
+        if not results:
+            return ApiResponse.error(code=404, message="未找到该道具")
+
+        prop = results[0]
+        prop_name = prop["prop_name"]
+        drama_name = prop["drama_name"]
+        episode_number = prop["episode_number"]
+
+        # Generate image using Jimeng
+        logger.info(f"Generating image for prop {prop_id} ({prop_name})")
+        logger.info(f"  Prompt: {image_prompt[:100]}...")
+
+        jimeng = JimengT2IRH()
+
+        # Step 1: Generate image and get URL
+        result = jimeng.generate_image(prompt=image_prompt, use_concurrency_control=True)
+
+        if not result or result.get('code') != 0:
+            logger.error(f"Failed to generate image: {result}")
+            response.status_code = 500
+            return ApiResponse.error(code=500, message="Image generation failed")
+
+        # Extract image URL from result
+        images = result.get('data', {}).get('images', [])
+        if not images:
+            response.status_code = 500
+            return ApiResponse.error(code=500, message="No images returned from generation")
+
+        image_url = images[0].get('imageUrl')
+        if not image_url:
+            response.status_code = 500
+            return ApiResponse.error(code=500, message="Empty image URL")
+
+        # Step 2: Download image to local storage
+        output_dir = Path(f"images/{drama_name}/{episode_number}/props")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = str(output_dir / f"{prop_name}.jpg")
+
+        logger.info(f"Downloading image to {output_path}...")
+        saved_path = jimeng._download_image(image_url, output_path)
+
+        if not saved_path:
+            logger.warning("Failed to download image, but URL is available")
+            # Continue anyway since we have the URL
+
+        # Update database with new image URL and prompt
+        conn = db._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE key_prop_definitions SET image_url = %s, image_prompt = %s WHERE id = %s",
+                    (image_url, image_prompt, prop_id)
+                )
+                conn.commit()
+        finally:
+            conn.close()
+
+        logger.info(f"Successfully generated image for prop {prop_id}")
+        if saved_path:
+            logger.info(f"  Local: {saved_path}")
+        logger.info(f"  URL: {image_url}")
+
+        return ApiResponse.success(
+            data={
+                "prop_id": prop_id,
+                "image_url": image_url,
+                "local_path": saved_path
+            },
+            message="Image generated and saved successfully"
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating prop image: {e}", exc_info=True)
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))

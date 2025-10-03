@@ -38,27 +38,23 @@ app.add_middleware(
 )
 
 # Global exception handler for AuthenticationError
-@app.exception_handler(Exception)
-async def authentication_error_handler(request: Request, exc: Exception):
+from api.middleware.auth import AuthenticationError
+
+@app.exception_handler(AuthenticationError)
+async def authentication_error_handler(request: Request, exc: AuthenticationError):
     """Handle AuthenticationError and return HTTP 200 with error details in body."""
-    from api.middleware.auth import AuthenticationError
-
-    if isinstance(exc, AuthenticationError):
-        return JSONResponse(
-            status_code=200,
-            content={
-                "code": exc.code,
-                "message": exc.message,
-                "data": exc.data
-            },
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Credentials": "true",
-            }
-        )
-
-    # Re-raise other exceptions to be handled by FastAPI default handlers
-    raise exc
+    return JSONResponse(
+        status_code=200,
+        content={
+            "code": exc.code,
+            "message": exc.message,
+            "data": exc.data
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
 
 # Signal handler for graceful shutdown
 def signal_handler(sig, frame):
