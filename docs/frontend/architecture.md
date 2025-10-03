@@ -9,19 +9,22 @@
 - **框架**: React 18
 - **构建工具**: Vite 7
 - **语言**: TypeScript
-- **样式**: Tailwind CSS 4
-- **路由**: React Router v6
+- **样式**: Tailwind CSS 4 + @tailwindcss/typography
+- **路由**: React Router v7
 - **状态管理**: Zustand
 - **UI 组件**: Lucide React (图标)
-- **数据缓存**: LocalForage
+- **Markdown**: React Markdown
+- **测试**: Vitest + @testing-library/react
+- **代码质量**: ESLint + Prettier + TypeScript
 
 ## 目录结构
 
 ```
 frontend/src/
 ├── api/                    # API 层
-│   ├── client.ts          # API 客户端配置
+│   ├── client.ts          # API 客户端配置 + 请求去重
 │   ├── endpoints.ts       # API 端点定义
+│   ├── requestDeduplicator.ts  # 请求去重管理器
 │   ├── types/             # API 类型定义
 │   │   ├── script.ts      # 剧本类型
 │   │   ├── character.ts   # 角色类型
@@ -38,30 +41,40 @@ frontend/src/
 │   │   ├── storyboardService.ts
 │   │   ├── memoryService.ts
 │   │   └── index.ts
+│   ├── __tests__/         # API 测试
+│   │   ├── client.test.ts
+│   │   ├── endpoints.test.ts
+│   │   └── requestDeduplicator.test.ts
 │   └── index.ts           # API 统一导出
 │
 ├── store/                 # 状态管理
-│   └── useScriptStore.ts  # 全局 store
+│   ├── useEpisodeStore.ts      # 剧集状态
+│   ├── useCharacterStore.ts    # 角色缓存
+│   ├── useSceneStore.ts        # 场景缓存
+│   ├── usePropStore.ts         # 道具缓存
+│   ├── useStoryboardStore.ts   # 分镜缓存
+│   ├── useMemoryStore.ts       # 记忆缓存
+│   ├── types.ts                # Store 类型定义
+│   └── __tests__/              # Store 测试
 │
 ├── layouts/               # 布局组件
 │   └── MainLayout.tsx     # 主布局（侧边栏 + 内容区）
 │
 ├── pages/                 # 页面组件
 │   ├── ScriptsList.tsx    # 剧集列表（首页）
-│   ├── Workspace.tsx      # 分镜工作台
+│   ├── Workspace.tsx      # 分镜工作台（带 Tab URL 参数）
 │   ├── Characters.tsx     # 角色资产页
 │   ├── Scenes.tsx         # 场景资产页
 │   ├── Props.tsx          # 道具资产页
-│   └── CharacterViewer.tsx # 角色详情页
+│   ├── CharacterViewer.tsx # 角色详情页
+│   └── SceneViewer.tsx    # 场景详情页
 │
 ├── components/            # 组件
 │   └── tabs/              # Tab 组件
-│       ├── ScriptTab.tsx      # 原文 Tab
-│       ├── StoryboardTab.tsx  # 分镜 Tab
-│       ├── MemoryTab.tsx      # Memory Tab
+│       ├── ScriptTab.tsx      # 原文 Tab（带刷新按钮）
+│       ├── StoryboardTab.tsx  # 分镜 Tab（带刷新按钮）
+│       ├── MemoryTab.tsx      # Memory Tab（带刷新按钮）
 │       └── WorkflowTab.tsx    # 流程控制 Tab
-│
-├── config/                # 配置文件（已废弃，迁移到 api/）
 │
 ├── hooks/                 # 自定义 Hooks（预留）
 │
@@ -69,7 +82,7 @@ frontend/src/
 │
 ├── App.tsx                # 应用根组件（路由配置）
 ├── main.tsx               # 应用入口
-└── index.css              # 全局样式
+└── index.css              # 全局样式（包含 prose 样式）
 ```
 
 ## 核心架构
@@ -79,13 +92,23 @@ frontend/src/
 采用分层架构，将 API 相关逻辑集中管理：
 
 ```
-组件 → Service → Client → 后端 API
+组件 → Service → Client → RequestDeduplicator → 后端 API
 ```
 
 #### 层级说明：
 
+- **RequestDeduplicator 层** (`api/requestDeduplicator.ts`):
+  - **自动请求去重**: 防止并发的相同请求
+  - **工作原理**:
+    - 当一个请求正在进行时，后续相同请求会等待并共享第一个请求的结果
+    - 请求完成后立即清理，不缓存响应数据
+    - 基于 URL + HTTP方法 + 请求体生成唯一 key
+  - **安全机制**: 自动清理超过5分钟的陈旧请求
+  - **测试覆盖**: 7个测试用例，覆盖去重、错误处理、并发控制等场景
+
 - **Client 层** (`api/client.ts`):
   - 封装 fetch 请求
+  - 集成请求去重器
   - 统一错误处理
   - 响应数据提取
 
@@ -102,145 +125,108 @@ frontend/src/
 - **Endpoints 层** (`api/endpoints.ts`):
   - 集中管理所有 API 端点
   - 支持动态参数
+  - 自动 URL 编码
 
 #### 使用示例：
 
 ```typescript
-// 旧方式（已废弃）
-import { API_ENDPOINTS, apiCall } from '../config/api';
-const data = await apiCall<{ props: Prop[] }>(
-  API_ENDPOINTS.getAllProps(),
-  { signal }
-);
+import { API_ENDPOINTS, apiCall } from '@api';
 
-// 新方式
-import { propService, type Prop } from '@api';
-const data = await propService.getAllProps(signal);
+// 请求会自动去重
+const data1 = apiCall(API_ENDPOINTS.getScript(key)); // 发起请求
+const data2 = apiCall(API_ENDPOINTS.getScript(key)); // 复用上面的请求
+// 实际只发起一个 HTTP 请求
 ```
 
 ### 2. 状态管理
 
-使用 **Zustand** 进行全局状态管理：
+使用 **Zustand** 进行全局状态管理，按模块分离：
 
-#### Store 设计：
+#### Store 列表：
 
-```typescript
-interface ScriptStore {
-  // 当前剧集上下文
-  currentEpisode: CurrentEpisode | null;
-  setCurrentEpisode: (episode: CurrentEpisode) => void;
-
-  // 数据缓存（按 key 索引）
-  scripts: Record<string, ScriptData>;
-  storyboards: Record<string, StoryboardData>;
-  characters: Record<string, CharactersData>;
-  scenes: Record<string, ScenesData>;
-  memories: Record<string, MemoryData>;
-
-  // Getter/Setter 方法
-  getScript: (key: string) => ScriptData | undefined;
-  setScript: (key: string, data: ScriptData) => void;
-  // ...
-}
-```
+1. **useEpisodeStore**: 剧集上下文和缓存
+2. **useCharacterStore**: 角色数据缓存
+3. **useSceneStore**: 场景数据缓存
+4. **usePropStore**: 道具数据缓存
+5. **useStoryboardStore**: 分镜数据缓存
+6. **useMemoryStore**: 记忆数据缓存
 
 #### 核心概念：
 
-1. **currentEpisode**: 当前选中的剧集信息
-   - 点击剧集卡片时设置
-   - Workspace 标题显示剧集名
-   - 用于跨 Tab 共享上下文
+**双重缓存策略**:
+1. **RequestDeduplicator**: 防止并发重复请求（临时，请求完成即清除）
+2. **Zustand Store**: 缓存响应数据（持久，直到用户刷新页面）
 
-2. **数据缓存**: 按 `key` 索引缓存 API 数据
-   - 避免重复请求
-   - 跨 Tab 数据共享
-   - 提升用户体验
+```typescript
+useEffect(() => {
+  // 1. 先检查 Store 缓存
+  const cached = getStoryboard(scriptKey);
+  if (cached) {
+    setScenes(cached);
+    return;
+  }
+
+  // 2. 无缓存时请求（自动去重）
+  fetchStoryboards();
+}, [scriptKey, getStoryboard]);
+```
+
+**优势**:
+- 切换 Tab 时不重复请求
+- 快速切换时请求自动合并
+- 数据在客户端持久化
 
 ### 3. 路径别名配置
 
-已完成路径别名配置，简化导入语句：
+完成的路径别名配置：
 
 **配置文件**:
-- `vite.config.ts`: 使用 `path.resolve` 配置别名（需安装 `@types/node`）
+- `vite.config.ts`: 使用 `path.resolve` 配置别名
 - `tsconfig.json`: 配置 `paths` 映射
 
 ```typescript
-// vite.config.ts
-import path from 'path';
-
-export default defineConfig({
-  resolve: {
-    alias: {
-      '@api': path.resolve(__dirname, './src/api'),
-      '@store': path.resolve(__dirname, './src/store'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-    }
-  }
-});
-
-// tsconfig.json
-{
-  "baseUrl": ".",
-  "paths": {
-    "@api": ["./src/api"],      // 直接导入整个模块
-    "@api/*": ["./src/api/*"],  // 导入子路径
-    "@store/*": ["./src/store/*"],
-    "@hooks/*": ["./src/hooks/*"]
-  }
-}
-```
-
-使用示例：
-```typescript
-// ✅ 使用别名（推荐）
+// 使用别名（推荐）
 import { API_ENDPOINTS, apiCall } from '@api';
-import { useScriptStore } from '@store/useScriptStore';
-
-// ❌ 旧方式（相对路径）
-import { API_ENDPOINTS, apiCall } from '../../config/api';
-import { useScriptStore } from '../../../store/useScriptStore';
+import { useEpisodeStore } from '@store/useEpisodeStore';
 ```
 
-**注意**: 项目中所有导入已更新为使用路径别名。
+### 4. URL 路由增强
 
-### 4. 数据缓存策略
+#### Workspace Tab 参数
 
-#### LocalForage 缓存（剧集列表）
+支持通过 URL 参数切换 Tab：
 
-采用 **Stale-While-Revalidate** 策略：
+```
+/episode/da4ef19d-5965-41c3-a971-f17d0ce06ef7?tab=storyboard
+```
 
-```typescript
-// 1. 立即从缓存加载
-const cachedData = await localforage.getItem('scripts_list_cache');
-if (cachedData) {
-  setScripts(cachedData);
-  setLoading(false);
+**特性**:
+- Tab 切换时自动更新 URL
+- 支持直接通过 URL 访问特定 Tab
+- 刷新页面保持 Tab 状态
+
+### 5. 样式系统
+
+#### Tailwind Typography
+
+在 `index.css` 中自定义了完整的 prose 样式：
+
+```css
+.prose p {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  line-height: 1.875;
 }
 
-// 2. 后台异步请求最新数据
-const freshData = await apiCall(...);
-
-// 3. 更新 UI 和缓存
-setScripts(freshData);
-await localforage.setItem('scripts_list_cache', freshData);
-```
-
-#### Zustand Store 缓存（详情数据）
-
-```typescript
-// 检查 store 缓存
-const cachedScript = getScript(key);
-if (cachedScript) {
-  // 直接使用缓存
-  return;
+.prose hr {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
 }
-
-// 无缓存时请求
-const data = await scriptService.getScript(key);
-setScript(key, data);
 ```
 
-### 5. 请求取消机制
+**原因**: Tailwind v4 不完全支持 `prose-hr:my-8` 这样的修饰符，需要在 CSS 中自定义。
+
+### 6. 请求取消机制
 
 所有 API 请求支持 **AbortController** 取消：
 
@@ -253,6 +239,53 @@ useEffect(() => {
     abortController.abort(); // 组件卸载时取消请求
   };
 }, []);
+```
+
+## 测试覆盖
+
+### 单元测试
+
+使用 Vitest + @testing-library/react：
+
+**API 测试**:
+- `client.test.ts`: 6个测试
+- `endpoints.test.ts`: 20个测试
+- `requestDeduplicator.test.ts`: 7个测试
+
+**Store 测试**:
+- `useCharacterStore.test.ts`: 5个测试
+- `useSceneStore.test.ts`: 4个测试
+- `usePropStore.test.ts`: 4个测试
+- `useEpisodeStore.test.ts`: 8个测试
+
+**总计**: 54个测试，全部通过 ✅
+
+### 运行测试
+
+```bash
+npm run test:run    # 运行所有测试
+npm run test:ui     # 测试UI界面
+npm run test:cov    # 测试覆盖率
+```
+
+## Git Hooks
+
+### Pre-commit Hook
+
+位于 `.githooks/pre-commit`，在每次提交前自动运行：
+
+1. **Tests** - 运行所有单元测试
+2. **Type-check** - TypeScript 类型检查
+3. **Lint** - ESLint 代码规范检查
+
+**启用方法**:
+```bash
+git config core.hooksPath .githooks
+```
+
+**跳过Hook** (不推荐):
+```bash
+git commit --no-verify
 ```
 
 ## 页面结构
@@ -272,11 +305,12 @@ useEffect(() => {
 ```typescript
 <Routes>
   <Route path="/" element={<ScriptsList />} />
-  <Route path="/workspace" element={<Workspace />} />
+  <Route path="/episode/:key" element={<Workspace />} />
   <Route path="/characters" element={<Characters />} />
   <Route path="/scenes" element={<Scenes />} />
   <Route path="/props" element={<Props />} />
   <Route path="/character/:id" element={<CharacterViewer />} />
+  <Route path="/scene/:id" element={<SceneViewer />} />
 </Routes>
 ```
 
@@ -286,12 +320,12 @@ useEffect(() => {
 - 展示所有剧集卡片
 - 点击卡片 → 设置 currentEpisode → 跳转到 Workspace
 - 支持复制剧集 key
-- LocalForage 缓存 + 后台刷新
 
 #### Workspace (分镜工作台)
 - 顶部显示剧集标题（从 currentEpisode）
 - Tab 切换: 原文、分镜、Memory、流程控制
-- 通过 URL 参数 `?key=xxx` 传递剧集标识
+- **新增**: Tab 参数在 URL 中 (`?tab=xxx`)
+- **新增**: 每个 Tab 都有刷新按钮
 
 #### Characters / Scenes / Props (资产页)
 - 独立页面，显示所有剧集的资产
@@ -314,17 +348,51 @@ useEffect(() => {
 
 ### 3. 性能优化
 
-- 使用 Zustand store 缓存数据
-- 使用 LocalForage 持久化缓存
-- 支持请求取消（AbortController）
-- 避免重复请求
+- **请求去重**: 自动合并并发的相同请求
+- **Zustand Store**: 缓存响应数据
+- **AbortController**: 支持请求取消
+- **URL 参数**: 保持 Tab 状态
 
 ### 4. 用户体验
 
-- Stale-While-Revalidate 缓存策略
+- 缓存优先策略（先读缓存，再请求）
 - 加载状态提示
 - 错误处理和重试
-- 路由参数传递状态
+- 刷新按钮手动更新数据
+- Tab 状态持久化（URL 参数）
+
+### 5. 代码质量
+
+- **Pre-commit Hook**: 提交前自动检查
+- **单元测试**: 54个测试覆盖核心功能
+- **ESLint + Prettier**: 统一代码风格
+- **TypeScript**: 严格类型检查
+
+## useEffect 依赖最佳实践
+
+### ❌ 错误示例
+
+```typescript
+// 错误：缺少 getStoryboard 依赖
+useEffect(() => {
+  const cached = getStoryboard(scriptKey);
+  if (cached) return;
+  fetchData();
+}, [scriptKey]); // 缺少 getStoryboard
+```
+
+### ✅ 正确示例
+
+```typescript
+// 正确：包含所有使用的依赖
+useEffect(() => {
+  const cached = getStoryboard(scriptKey);
+  if (cached) return;
+  fetchData();
+}, [scriptKey, getStoryboard]); // 完整依赖
+```
+
+**原因**: Zustand store 的 getter 函数会在 store 更新时变化，必须放在依赖数组中，否则会使用陈旧闭包导致缓存失效。
 
 ## 待开发功能
 
@@ -332,3 +400,4 @@ useEffect(() => {
 - [ ] 组件库集成优化
 - [ ] 更多资产页面功能
 - [ ] 实时数据更新
+- [ ] API文档集成 (Swagger)
