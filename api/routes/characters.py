@@ -13,7 +13,19 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from utils.database import Database
 from procedure.generate_character_portraits import CharacterPortraitGenerator
 from models.jimeng_t2i_RH import JimengT2IRH
+from utils.upload import R2Uploader
+from utils.config import R2_CONFIG
 from api.middleware.auth import require_auth, UserPrincipal
+
+def to_cdn_url(image_url: str) -> str:
+    """Convert image_url (R2 key or full URL) to CDN URL."""
+    if not image_url:
+        return None
+    # If already a full URL, return as is
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        return image_url
+    # Otherwise treat as R2 key and prepend CDN base URL
+    return f"{R2_CONFIG['cdn_base_url']}/{image_url}"
 from api.schemas import (
     GenerateDefinitionsRequest,
     GenerateImageRequest,
@@ -90,6 +102,10 @@ async def get_all_characters(db: Database = Depends(get_db), user: UserPrincipal
             "characters": results,
             "count": len(results)
         }
+
+        # Convert image_url (R2 keys) to CDN URLs
+        for char in response_data['characters']:
+            char['image_url'] = to_cdn_url(char.get('image_url'))
 
         logger.info(f"Found {response_data['count']} characters across all scripts")
         return ApiResponse.success(data=response_data)
@@ -177,7 +193,7 @@ async def get_character(character_id: int, db: Database = Depends(get_db), user:
             "character_name": character["character_name"],
             "image_prompt": character["image_prompt"],
             "reflection": character["reflection"],
-            "image_url": character["image_url"],
+            "image_url": to_cdn_url(character["image_url"]),
             "is_key_character": character["is_key_character"],
             "character_brief": character["character_brief"]
         })
@@ -280,42 +296,57 @@ async def generate_character_image(character_id: int, request: GenerateImageRequ
             response.status_code = 500
             return ApiResponse.error(code=500, message="Empty image URL")
 
-        # Step 2: Download image to local storage
+        # Step 2: Upload to R2
+        r2_uploader = R2Uploader()
+        r2_key = f"tiangui/{episode_number}/characters/{character_name}.jpg"
+
+        logger.info(f"Uploading image to R2: {r2_key}...")
+        cdn_url = r2_uploader.upload_from_url(image_url, r2_key)
+
+        if not cdn_url:
+            logger.error("Failed to upload image to R2")
+            response.status_code = 500
+            return ApiResponse.error(code=500, message="Failed to upload image to R2")
+
+        logger.info(f"Successfully uploaded to R2: {cdn_url}")
+
+        # Step 3: Download to local storage (optional, for backup)
         output_dir = Path(f"images/{drama_name}/{episode_number}")
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = str(output_dir / f"{character_name}.jpg")
 
-        logger.info(f"Downloading image to {output_path}...")
+        logger.info(f"Downloading image to local: {output_path}...")
         saved_path = jimeng._download_image(image_url, output_path)
 
         if not saved_path:
-            logger.warning("Failed to download image, but URL is available")
-            # Continue anyway since we have the URL
+            logger.warning("Failed to download image locally, but R2 upload succeeded")
 
-        # Update database with new image URL and prompt
+        # Update database with R2 key (not full URL) and prompt
         conn = db._get_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE character_portraits SET image_url = %s, image_prompt = %s WHERE id = %s",
-                    (image_url, image_prompt, character_id)
+                    (r2_key, image_prompt, character_id)
                 )
                 conn.commit()
         finally:
             conn.close()
 
         logger.info(f"Successfully generated image for character {character_id}")
+        logger.info(f"  R2 Key: {r2_key}")
+        logger.info(f"  CDN URL: {cdn_url}")
         if saved_path:
             logger.info(f"  Local: {saved_path}")
-        logger.info(f"  URL: {image_url}")
 
         return ApiResponse.success(
             data={
                 "character_id": character_id,
-                "image_url": image_url,
+                "image_url": cdn_url,  # Return full CDN URL to frontend
+                "r2_key": r2_key,
                 "local_path": saved_path
             },
-            message="Image generated and saved successfully"
+            message="Image generated and uploaded successfully"
         )
 
     except Exception as e:

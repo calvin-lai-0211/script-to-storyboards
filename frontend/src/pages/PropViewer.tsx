@@ -175,7 +175,7 @@ const PropViewer: React.FC = () => {
           <div className="grid items-start gap-6 lg:grid-cols-3">
             {/* 左侧: 道具图片显示区域 (1列) - 固定位置 */}
             <div className="lg:sticky lg:top-6 lg:col-span-1">
-              <ImageDisplay imageUrl={propData?.image_url || null} loading={loading} />
+              <ImageDisplay imageUrl={propData?.image_url || null} loading={loading || generating} />
             </div>
 
             {/* 右侧: 信息区域 (2列) - 可滚动 */}

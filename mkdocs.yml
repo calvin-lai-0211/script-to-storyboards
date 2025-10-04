@@ -58,6 +58,7 @@ nav:
       - 概览: dev/README.md
       - 快速开始: dev/getting-started.md
       - Git Hooks & CI: dev/git-hooks-and-ci.md
+      - 开发工具和脚本: dev/tools-and-utilities.md
       - Google OAuth 认证: dev/google-oauth-authentication.md
   - 前端文档:
       - 概览: frontend/README.md
