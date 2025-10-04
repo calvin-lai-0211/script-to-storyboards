@@ -29,6 +29,6 @@
 ## 其他文档
 
 - [API 文档](../api/README.md) - API 接口说明和 TypeScript 类型定义
-- [前端架构](../frontend/architecture.md) - 前端技术架构和组件设计
-- [Kubernetes 部署](../k8s/deployment.md) - K8s 完整部署指南
-- [Docker Compose](../../docker/docker-compose.md) - Docker Compose 本地部署指南
+- [前端开发指南](../frontend/README.md) - 前端技术架构、组件设计和测试指南
+- [Kubernetes 部署](../k8s/README.md) - K8s 完整部署指南（本地/远程）
+- [项目主 README](../../README.md) - 项目概览和快速开始

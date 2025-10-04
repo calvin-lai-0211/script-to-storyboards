@@ -60,19 +60,20 @@ cd docker/k8s
 
 ## 📦 K8s 资源清单
 
-| 文件 | 资源类型 | 说明 |
-|------|---------|------|
-| `api-deployment.yaml` | Deployment + Service | API 后端服务（本地开发） |
+| 文件                       | 资源类型             | 说明                     |
+| -------------------------- | -------------------- | ------------------------ |
+| `api-deployment.yaml`      | Deployment + Service | API 后端服务（本地开发） |
 | `api-deployment.prod.yaml` | Deployment + Service | API 后端服务（生产环境） |
-| `frontend-deployment.yaml` | Deployment + Service | Frontend 前端服务 |
-| `redis-deployment.yaml` | Deployment + Service | Redis 会话存储 |
-| `nginx-configmap.yaml` | ConfigMap | Nginx 配置文件 |
-| `ingress.yaml` | Ingress | 统一入口和路由规则 |
-| `k3d-config.yaml` | k3d 配置 | 本地集群创建配置 |
+| `frontend-deployment.yaml` | Deployment + Service | Frontend 前端服务        |
+| `redis-deployment.yaml`    | Deployment + Service | Redis 会话存储           |
+| `nginx-configmap.yaml`     | ConfigMap            | Nginx 配置文件           |
+| `ingress.yaml`             | Ingress              | 统一入口和路由规则       |
+| `k3d-config.yaml`          | k3d 配置             | 本地集群创建配置         |
 
 ## 🚀 快速命令参考
 
 ### 查看状态
+
 ```bash
 kubectl get all                          # 所有资源
 kubectl get pods                         # Pod 列表
@@ -81,6 +82,7 @@ kubectl get ingress                      # Ingress 列表
 ```
 
 ### 查看日志
+
 ```bash
 kubectl logs -f deployment/storyboard-api        # API 日志
 kubectl logs -f deployment/storyboard-frontend   # Frontend 日志
@@ -88,12 +90,14 @@ kubectl logs -f deployment/storyboard-redis      # Redis 日志
 ```
 
 ### 重启服务
+
 ```bash
 kubectl rollout restart deployment/storyboard-api
 kubectl rollout restart deployment/storyboard-frontend
 ```
 
 ### 更新部署
+
 ```bash
 cd docker/k8s
 ./update-api.sh          # 仅更新 API
@@ -102,6 +106,7 @@ cd docker/k8s
 ```
 
 ### 清理资源
+
 ```bash
 ./undeploy.sh            # 删除所有部署
 k3d cluster delete calvin # 删除整个集群
@@ -110,11 +115,13 @@ k3d cluster delete calvin # 删除整个集群
 ## 🔧 环境要求
 
 ### 本地开发
+
 - **kubectl**: K8s 命令行工具
 - **k3d** (Mac/Windows): 本地 K8s 集群
 - **Docker**: 容器运行时
 
 ### 生产环境
+
 - **K3s**: 轻量级 K8s（已安装在服务器）
 - **kubectl**: 本地通过 SSH 访问远程集群
 
@@ -126,21 +133,24 @@ k3d cluster delete calvin # 删除整个集群
 
 ## ❓ 常见问题
 
-**Q: 本地和生产环境有什么区别？**
+**Q: 本地和生产环境有什么区别？**  
 A: 主要是环境变量不同：
+
 - 本地: `API_BASE_URL=http://localhost:8080`, `ENV=development`
 - 生产: `API_BASE_URL=https://videos.ethanlyn.com`, `ENV=production`
 
-**Q: 如何在本地和生产之间切换？**
+**Q: 如何在本地和生产之间切换？**  
 A: 使用不同的部署脚本和配置文件：
+
 - 本地: `./local-deploy.sh` 使用 `api-deployment.yaml`
 - 生产: `./deploy-to-remote.sh` 使用 `api-deployment.prod.yaml`
 
-**Q: 需要手动管理镜像吗？**
+**Q: 需要手动管理镜像吗？**  
 A: 不需要，部署脚本会自动：
+
 - 构建 Docker 镜像
 - 导入到 K8s 集群（本地）或打包上传（远程）
 - 应用配置并重启服务
 
-**Q: 部署失败怎么办？**
+**Q: 部署失败怎么办？**  
 A: 参考 [故障排查文档](troubleshooting.md) 查看常见问题和解决方案。

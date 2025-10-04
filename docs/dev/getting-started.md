@@ -231,7 +231,7 @@ brew install k3d
 
 # 创建集群（使用项目配置）
 cd docker/k8s
-k3d cluster create calvin --config k3d-config.yaml
+k3d cluster create my-cluster --config k3d-config.yaml
 
 # 验证集群
 kubectl get nodes
@@ -245,7 +245,7 @@ curl -sfL https://get.k3s.io | sh -
 
 # 配置 kubectl
 mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config/my-k3s.yaml
 sudo chown $USER:$USER ~/.kube/config
 
 # 验证集群
@@ -272,7 +272,7 @@ cd docker/k8s
 **访问地址**:
 
 - 通过 Ingress: http://localhost:8080
-- 或使用 Port Forward:
+- 或使用 Port Forward (MacOS 需要):
   ```bash
   kubectl port-forward svc/storyboard-frontend 5173:80
   kubectl port-forward svc/storyboard-api 8001:8000
@@ -302,6 +302,8 @@ kubectl exec -it deployment/storyboard-api -- /bin/sh
 
 ### 4. 更新部署
 
+除了上面的全局部署外，还添加了一些单独更新前后端的脚本。
+
 **更新 API**:
 
 ```bash
@@ -316,7 +318,9 @@ cd docker/k8s
 ./update-frontend.sh
 ```
 
-**更新 ConfigMap**:
+**更新 ConfigMap**
+
+> 主要用于更新 nginx 等配置
 
 ```bash
 cd docker/k8s
@@ -334,10 +338,10 @@ cd docker/k8s
 kubectl delete -f docker/k8s/
 
 # 删除整个集群
-k3d cluster delete calvin
+k3d cluster delete my-cluster
 ```
 
-### 6. 环境配置
+### 6. 环境变量配置
 
 修改 `docker/k8s/api-deployment.yaml`:
 
@@ -370,7 +374,7 @@ kubectl rollout restart deployment/storyboard-api
 
 ```bash
 # SSH 登录服务器
-ssh your-server
+ssh my-server
 
 # 安装 K3s
 curl -sfL https://get.k3s.io | sh -
@@ -385,7 +389,7 @@ sudo k3s kubectl get nodes
 **方式 A: SSH 配置** (`~/.ssh/config`):
 
 ```
-Host calvin
+Host my-server
     HostName 44.213.117.91
     User ubuntu
     IdentityFile ~/.ssh/your-key.pem
@@ -395,14 +399,14 @@ Host calvin
 
 ```bash
 # 从远程服务器复制配置
-ssh calvin "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/calvin-k3s.yaml
+ssh my-server "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/my-k3s.yaml
 
 # 修改文件中的 server 地址
 # From: server: https://127.0.0.1:6443
 # To:   server: https://YOUR_SERVER_IP:6443
 
 # 使用配置
-export KUBECONFIG=~/.kube/calvin-k3s.yaml
+export KUBECONFIG=~/.kube/my-k3s.yaml
 kubectl get nodes
 ```
 
@@ -437,19 +441,19 @@ env:
 
 ```bash
 # 查看远程 Pod 状态
-ssh calvin 'kubectl get pods'
+ssh my-server 'kubectl get pods'
 
 # 查看远程日志
-ssh calvin 'kubectl logs -f deployment/storyboard-api'
+ssh my-server 'kubectl logs -f deployment/storyboard-api'
 
 # 重启远程服务
-ssh calvin 'kubectl rollout restart deployment/storyboard-api'
+ssh my-server 'kubectl rollout restart deployment/storyboard-api'
 
 # 查看 Ingress
-ssh calvin 'kubectl get ingress'
+ssh my-server 'kubectl get ingress'
 
 # 查看服务
-ssh calvin 'kubectl get svc'
+ssh my-server 'kubectl get svc'
 ```
 
 ### 5. 更新远程部署
@@ -459,7 +463,7 @@ ssh calvin 'kubectl get svc'
 ./deploy-to-remote.sh
 
 # 或手动更新特定服务
-ssh calvin 'cd ~/k8s-deploy/k8s-package && ./update-api.sh'
+ssh my-server 'cd ~/k8s-deploy/k8s-package && ./update-api.sh'
 ```
 
 ### 6. 生产环境配置
