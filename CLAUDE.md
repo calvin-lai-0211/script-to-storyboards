@@ -10,13 +10,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Database-Driven Workflow
 
-The project uses PostgreSQL as the central data store with five main tables:
+The project uses PostgreSQL as the central data store with six main tables:
 
 - `scripts`: Stores raw script content, episodes, characters, and scenes
 - `flat_storyboards`: Denormalized storyboard data with scene/shot/sub-shot hierarchy
 - `character_portraits`: Character image prompts and generated portrait URLs
 - `scene_definitions`: Scene image prompts and keyframe URLs
 - `users`: User authentication data for Google OAuth login
+- `ai_tasks`: Async image generation task queue with status tracking
 
 ### Three-Layer Structure
 
@@ -42,6 +43,16 @@ The project uses PostgreSQL as the central data store with five main tables:
      - `auto_init=True`: Creates all tables on initialization (only for setup scripts)
      - `auto_init=False` (default): Skip table creation for better performance in production/API
    - `config.py`: Contains DB credentials (with timeouts), API keys, and model configurations
+   - `ai_task_manager.py`: Task queue manager for async image generation
+
+4. **Background Layer** (`background/`): Async task processing
+   - `task_processor.py`: Background worker that processes AI image generation tasks
+     - Polls `ai_tasks` table every 3 seconds
+     - Submits PENDING tasks to RunningHub
+     - Polls ACTIVE tasks for completion
+     - Downloads images and uploads to R2
+     - Auto-recovery: Reconnects on errors, exponential backoff
+     - Runs alongside API via supervisor in Docker/K8s
 
 ### Storyboard JSON Structure
 
@@ -55,9 +66,21 @@ Each sub-shot includes: camera angle (景别/机位), characters (涉及人物),
 
 ## Deployment
 
-### Local Development (Docker Compose)
+### Local Development
 
-Quick start for local development:
+**Quick Start with Dev Script** (Recommended):
+
+```bash
+./dev_start.py
+```
+
+Starts both API and Background Task Processor.
+
+**Logs**:
+- Task Processor: `tail -f logs/task_processor.log`
+- API: Console output
+
+**Docker Compose**:
 
 ```bash
 cd docker
@@ -66,8 +89,12 @@ docker-compose up -d
 
 Access at:
 
-- Frontend: http://localhost:5173
-- API: http://localhost:8001
+- Frontend: http://localhost:8866
+- API: http://localhost:8000
+
+**Logs**:
+- Task Processor: `tail -f logs/task_processor.log` (mapped from container)
+- API: `docker-compose logs -f api`
 
 See [Docker Compose README](docker/README.md) for details.
 
@@ -84,7 +111,7 @@ The script will:
 
 1. Build Docker images
 2. Import images to K8s
-3. Deploy Redis, API, Frontend
+3. Deploy Redis, API (with background task processor), Frontend
 4. Optionally deploy Ingress (port 80)
 
 **Access via Ingress**: http://localhost:8080 (k3d maps 80→8080)
@@ -92,10 +119,18 @@ The script will:
 **Important K8s Resources**:
 
 - `redis-deployment.yaml`: Session storage (Redis)
-- `api-deployment.yaml`: Backend API service
+- `api-deployment.yaml`: Backend API service + background task processor (managed by supervisor)
 - `frontend-deployment.yaml`: Frontend web service
 - `nginx-configmap.yaml`: Nginx configuration
 - `ingress.yaml`: Unified entry point (optional)
+
+**Background Task Processor**:
+- Runs inside the API container via supervisor
+- Auto-starts with API deployment
+- Auto-restarts on failure (max 10 retries)
+- **Application Logs**: `/app/logs/task_processor.log` (recommended)
+- **Supervisor Logs**: `/var/log/supervisor/task-processor.out.log`
+- **Configuration**: `utils/config.py` → `TASK_PROCESSOR_CONFIG`
 
 **Quick Commands**:
 
@@ -103,10 +138,20 @@ The script will:
 # View status
 kubectl get pods
 
-# View logs
+# View API logs (includes both API and task processor)
 kubectl logs -f deployment/storyboard-api
 
-# Restart service
+# View task processor logs (multiple options)
+# Option 1: Application logs (recommended)
+kubectl exec -it deployment/storyboard-api -- tail -f /app/logs/task_processor.log
+
+# Option 2: Supervisor logs
+kubectl exec -it deployment/storyboard-api -- tail -f /var/log/supervisor/task-processor.out.log
+
+# Check supervisor status
+kubectl exec -it deployment/storyboard-api -- supervisorctl status
+
+# Restart service (restarts both API and task processor)
 kubectl rollout restart deployment/storyboard-api
 
 # Update API only
@@ -124,6 +169,7 @@ See [docs/k8s/README.md](docs/k8s/README.md) for complete K8s deployment guide.
 - [Git Hooks 和 CI/CD](docs/dev/git-hooks-and-ci.md) - 代码提交规范和自动化
 - [前端文档](docs/frontend/README.md) - React 前端完整技术文档
 - [Kubernetes 部署](docs/k8s/README.md) - K8s 部署指南（含故障排查）
+- [异步图片生成](docs/dev/async-image-generation.md) - 异步任务处理架构文档
 
 ## Common Development Commands
 

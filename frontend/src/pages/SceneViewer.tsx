@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { MapPin, Sparkles, AlertCircle, Star } from 'lucide-react'
+import { MapPin, Sparkles, AlertCircle, Star, Save, Edit, Wand2 } from 'lucide-react'
 import ImageDisplay from '../components/ImageDisplay'
 import BackButton from '../components/BackButton'
 import { API_ENDPOINTS, apiCall } from '@api'
+import { sceneService } from '@api/services/sceneService'
 import { useSceneStore } from '@store/useSceneStore'
 
 interface SceneData {
@@ -23,10 +24,16 @@ interface SceneData {
 
 const SceneViewer: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const { currentScene } = useSceneStore()
+  const { currentScene, updateScene } = useSceneStore()
   const [sceneData, setSceneData] = useState<SceneData | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [isEditingPrompt, setIsEditingPrompt] = useState<boolean>(false)
+  const [editedPrompt, setEditedPrompt] = useState<string>('')
+  const [saving, setSaving] = useState<boolean>(false)
+  const [generating, setGenerating] = useState<boolean>(false)
+  const [generationStatus, setGenerationStatus] = useState<string>('')
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -40,6 +47,7 @@ const SceneViewer: React.FC = () => {
     try {
       const data = await apiCall<any>(API_ENDPOINTS.getScene(sceneId))
       setSceneData(data as SceneData)
+      setEditedPrompt(data.image_prompt as string)
     } catch (err) {
       console.error('Error fetching scene data:', err)
       setError('获取场景数据失败，请检查网络或服务器。')
@@ -47,6 +55,112 @@ const SceneViewer: React.FC = () => {
       setLoading(false)
     }
   }
+
+  const handleSavePrompt = async () => {
+    if (!sceneData || !id) return
+
+    setSaving(true)
+    try {
+      await apiCall(API_ENDPOINTS.updateScenePrompt(id), {
+        method: 'PUT',
+        body: JSON.stringify({ image_prompt: editedPrompt })
+      })
+
+      setSceneData({ ...sceneData, image_prompt: editedPrompt })
+      setIsEditingPrompt(false)
+    } catch (err) {
+      console.error('Error saving prompt:', err)
+      alert('保存失败，请重试。')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleGenerateImage = async () => {
+    if (!sceneData || !id) return
+
+    const promptToUse = isEditingPrompt ? editedPrompt : sceneData.image_prompt
+
+    if (!promptToUse || promptToUse.trim() === '') {
+      alert('请先添加场景描述后再生成图片')
+      return
+    }
+
+    setGenerating(true)
+    setGenerationStatus('提交任务中...')
+
+    try {
+      const taskResult = await sceneService.submitSceneTask(id, promptToUse)
+      console.debug('Task submitted:', taskResult.task_id)
+
+      setGenerationStatus('排队中...')
+
+      const taskId = taskResult.task_id
+      const pollInterval = 3000
+
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const status = await sceneService.getSceneTaskStatus(id, taskId)
+          console.debug('Polling status:', status.status)
+
+          if (status.status === 'QUEUED') {
+            setGenerationStatus('排队中...')
+          } else if (status.status === 'RUNNING') {
+            setGenerationStatus('生成中...')
+          } else if (status.status === 'SUCCESS') {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+
+            setGenerationStatus('完成！')
+
+            const updatedData = {
+              ...sceneData,
+              image_url: status.image_url!,
+              image_prompt: promptToUse
+            }
+            setSceneData(updatedData)
+            setEditedPrompt(promptToUse)
+            setIsEditingPrompt(false)
+
+            updateScene(Number(id), {
+              image_url: status.image_url!,
+              image_prompt: promptToUse
+            })
+
+            console.debug('Image generated successfully:', status.image_url)
+            setGenerating(false)
+            setGenerationStatus('')
+          } else if (status.status === 'FAIL' || status.status === 'CANCEL') {
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+
+            alert(`生成失败: ${status.error || '未知错误'}`)
+            setGenerating(false)
+            setGenerationStatus('')
+          }
+        } catch (pollErr) {
+          console.error('Error polling status:', pollErr)
+        }
+      }, pollInterval)
+    } catch (err) {
+      console.error('Error submitting task:', err)
+      alert('提交任务失败，请检查网络或稍后重试。')
+      setGenerating(false)
+      setGenerationStatus('')
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-teal-50">
@@ -103,7 +217,10 @@ const SceneViewer: React.FC = () => {
           <div className="grid items-start gap-6 lg:grid-cols-3">
             {/* 左侧: 场景图片显示区域 (1列) - 固定位置 */}
             <div className="lg:sticky lg:top-6 lg:col-span-1">
-              <ImageDisplay imageUrl={sceneData?.image_url || null} loading={loading} />
+              <ImageDisplay
+                imageUrl={sceneData?.image_url || null}
+                loading={loading || generating}
+              />
             </div>
 
             {/* 右侧: 信息区域 (2列) - 可滚动 */}
@@ -168,18 +285,67 @@ const SceneViewer: React.FC = () => {
                 )}
               </div>
 
-              {/* 场景描述 - Image Prompt */}
-              <div className="flex h-[350px] flex-col rounded-2xl border-2 border-slate-300 bg-white p-6 shadow-lg transition-shadow duration-300 hover:shadow-xl">
-                <div className="mb-3 flex h-8 flex-shrink-0 items-center">
+              {/* 场景描述 - Image Prompt - 可编辑 */}
+              <div className="flex h-[400px] flex-col rounded-2xl border-2 border-slate-300 bg-white p-6 shadow-lg transition-shadow duration-300 hover:shadow-xl">
+                <div className="mb-3 flex h-8 flex-shrink-0 items-center justify-between">
                   <h3 className="font-display flex items-center text-lg font-bold text-slate-800">
                     <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
-                    场景描述
+                    场景描述 (Prompt)
                   </h3>
+                  {!isEditingPrompt ? (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={generating}
+                        className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-green-500 to-teal-500 px-4 py-2 text-white shadow-md transition-all duration-200 hover:from-green-600 hover:to-teal-600 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        <span className="text-sm font-medium">
+                          {generating ? generationStatus || '生成中...' : '生成图片'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setIsEditingPrompt(true)}
+                        className="flex items-center space-x-2 rounded-lg bg-green-50 px-4 py-2 text-green-700 transition-colors duration-200 hover:bg-green-100"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="text-sm font-medium">编辑</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => {
+                          setIsEditingPrompt(false)
+                          setEditedPrompt(sceneData?.image_prompt || '')
+                        }}
+                        className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+                      >
+                        取消
+                      </button>
+                      <button
+                        onClick={handleSavePrompt}
+                        disabled={saving}
+                        className="flex items-center space-x-2 rounded-lg bg-green-600 px-4 py-2 text-white transition-colors duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span className="text-sm font-medium">{saving ? '保存中...' : '保存'}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 {loading ? (
                   <div className="flex flex-1 items-center justify-center">
                     <div className="animate-pulse text-slate-400">加载中...</div>
                   </div>
+                ) : isEditingPrompt ? (
+                  <textarea
+                    value={editedPrompt}
+                    onChange={(e) => setEditedPrompt(e.target.value)}
+                    className="w-full flex-1 resize-none rounded-xl border border-slate-300 bg-slate-50 p-4 text-slate-800 placeholder-slate-500 transition-colors duration-200 focus:border-green-400 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                    placeholder="描述场景的环境、氛围、光线等细节..."
+                  />
                 ) : (
                   <div className="prose max-w-none flex-1 overflow-y-auto">
                     <p className="leading-relaxed whitespace-pre-wrap text-slate-700">

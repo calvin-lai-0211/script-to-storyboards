@@ -43,6 +43,10 @@ class GenerateDefinitionsRequest(BaseModel):
 class GenerateImageRequest(BaseModel):
     image_prompt: str
 
+class SubmitTaskRequest(BaseModel):
+    """Request to submit an async image generation task"""
+    image_prompt: str
+
 class StatusResponse(BaseModel):
     status: str
     message: str
@@ -91,6 +95,17 @@ class GenerateImageData(BaseModel):
     character_id: int
     image_url: str
     local_path: Optional[str] = None
+
+class SubmitTaskData(BaseModel):
+    """Response data for task submission"""
+    task_id: str
+    status: str
+
+class TaskStatusData(BaseModel):
+    """Response data for task status query"""
+    status: str  # QUEUED, RUNNING, SUCCESS, FAIL, CANCEL
+    image_url: Optional[str] = None
+    error: Optional[str] = None
 
 class GeneratePropImageData(BaseModel):
     """Response data for prop image generation"""
@@ -243,6 +258,14 @@ class CharacterDetailResponse(ApiResponse[CharacterDetailData]):
 
 class GenerateImageResponse(ApiResponse[GenerateImageData]):
     """Typed response for image generation"""
+    pass
+
+class SubmitTaskResponse(ApiResponse[SubmitTaskData]):
+    """Typed response for task submission"""
+    pass
+
+class TaskStatusResponse(ApiResponse[TaskStatusData]):
+    """Typed response for task status query"""
     pass
 
 class GeneratePropImageResponse(ApiResponse[GeneratePropImageData]):

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { User, Sparkles, AlertCircle, Save, Edit, Wand2 } from 'lucide-react'
 import ImageDisplay from '../components/ImageDisplay'
 import BackButton from '../components/BackButton'
 import { API_ENDPOINTS, apiCall } from '@api'
+import { characterService } from '@api/services/characterService'
 import { useCharacterStore } from '@store/useCharacterStore'
 
 interface CharacterData {
@@ -23,6 +24,8 @@ const CharacterViewer: React.FC = () => {
   const [editedPrompt, setEditedPrompt] = useState<string>('')
   const [saving, setSaving] = useState<boolean>(false)
   const [generating, setGenerating] = useState<boolean>(false)
+  const [generationStatus, setGenerationStatus] = useState<string>('')
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -77,40 +80,88 @@ const CharacterViewer: React.FC = () => {
     }
 
     setGenerating(true)
+    setGenerationStatus('提交任务中...')
+
     try {
-      const result = await apiCall<any>(API_ENDPOINTS.generateCharacterImage(id), {
-        method: 'POST',
-        body: JSON.stringify({
-          image_prompt: promptToUse
-        })
-      })
+      // Step 1: Submit task
+      const taskResult = await characterService.submitCharacterTask(id, promptToUse)
+      console.debug('Task submitted:', taskResult.task_id)
 
-      // Update character data with new image URL and prompt
-      const updatedData = {
-        ...characterData,
-        image_url: result.image_url as string,
-        image_prompt: promptToUse
-      }
-      setCharacterData(updatedData)
-      setEditedPrompt(promptToUse)
-      setIsEditingPrompt(false)
+      setGenerationStatus('排队中...')
 
-      // Update store to refresh list page
-      if (id) {
-        updateCharacter(Number(id), {
-          image_url: result.image_url as string,
-          image_prompt: promptToUse
-        })
-      }
+      // Step 2: Start polling
+      const taskId = taskResult.task_id
+      const pollInterval = 3000 // Poll every 3 seconds
 
-      console.debug('Image generated successfully:', result.image_url)
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const status = await characterService.getCharacterTaskStatus(id, taskId)
+          console.debug('Polling status:', status.status)
+
+          if (status.status === 'QUEUED') {
+            setGenerationStatus('排队中...')
+          } else if (status.status === 'RUNNING') {
+            setGenerationStatus('生成中...')
+          } else if (status.status === 'SUCCESS') {
+            // Clear polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+
+            setGenerationStatus('完成！')
+
+            // Update character data with new image URL and prompt
+            const updatedData = {
+              ...characterData,
+              image_url: status.image_url!,
+              image_prompt: promptToUse
+            }
+            setCharacterData(updatedData)
+            setEditedPrompt(promptToUse)
+            setIsEditingPrompt(false)
+
+            // Update store to refresh list page
+            updateCharacter(Number(id), {
+              image_url: status.image_url!,
+              image_prompt: promptToUse
+            })
+
+            console.debug('Image generated successfully:', status.image_url)
+            setGenerating(false)
+            setGenerationStatus('')
+          } else if (status.status === 'FAIL' || status.status === 'CANCEL') {
+            // Clear polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current)
+              pollingIntervalRef.current = null
+            }
+
+            alert(`生成失败: ${status.error || '未知错误'}`)
+            setGenerating(false)
+            setGenerationStatus('')
+          }
+        } catch (pollErr) {
+          console.error('Error polling status:', pollErr)
+          // Don't stop polling on transient errors
+        }
+      }, pollInterval)
     } catch (err) {
-      console.error('Error generating image:', err)
-      alert('生成图片失败，请检查网络或稍后重试。')
-    } finally {
+      console.error('Error submitting task:', err)
+      alert('提交任务失败，请检查网络或稍后重试。')
       setGenerating(false)
+      setGenerationStatus('')
     }
   }
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [])
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -159,7 +210,10 @@ const CharacterViewer: React.FC = () => {
           <div className="grid items-start gap-6 lg:grid-cols-3">
             {/* 左侧: 肖像显示区域 (1列) */}
             <div className="lg:col-span-1">
-              <ImageDisplay imageUrl={characterData?.image_url || null} loading={loading || generating} />
+              <ImageDisplay
+                imageUrl={characterData?.image_url || null}
+                loading={loading || generating}
+              />
             </div>
 
             {/* 右侧: 信息区域 (2列) */}
@@ -169,7 +223,7 @@ const CharacterViewer: React.FC = () => {
                 <div className="mb-3 flex h-8 flex-shrink-0 items-center justify-between">
                   <h3 className="font-display flex items-center text-lg font-bold text-slate-800">
                     <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
-                    角色描述
+                    角色描述 (Prompt)
                   </h3>
                   {!isEditingPrompt ? (
                     <div className="flex items-center space-x-2">
@@ -180,7 +234,7 @@ const CharacterViewer: React.FC = () => {
                       >
                         <Wand2 className="h-4 w-4" />
                         <span className="text-sm font-medium">
-                          {generating ? '生成中...' : '生成图片'}
+                          {generating ? generationStatus || '生成中...' : '生成图片'}
                         </span>
                       </button>
                       <button

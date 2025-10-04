@@ -29,6 +29,7 @@ class Database:
         self.create_key_prop_definitions_table()
         self.create_episode_memory_table()
         self.create_users_table()
+        self.create_ai_tasks_table()
 
     def _get_connection(self):
         return psycopg2.connect(**self.db_config)
@@ -1008,3 +1009,77 @@ if __name__ == '__main__':
 
     # retrieved_script_by_title = db.get_script_by_title("My Awesome Script")
     # print("Retrieved script by Title:", retrieved_script_by_title)
+
+    def create_ai_tasks_table(self):
+        """
+        Create AI tasks table for async image generation management.
+        Only used for API calls, not for script-based generation.
+        """
+        conn = None
+        try:
+            print('Creating ai_tasks table...')
+            conn = self._get_connection()
+            cur = conn.cursor()
+
+            create_table_query = """
+            CREATE TABLE IF NOT EXISTS ai_tasks (
+                -- Primary key
+                id SERIAL PRIMARY KEY,
+
+                -- Task identifier
+                task_id VARCHAR(255) UNIQUE,
+
+                -- Task type and entity
+                task_type VARCHAR(50) NOT NULL,
+                entity_type VARCHAR(50) NOT NULL,
+                entity_id INTEGER NOT NULL,
+
+                -- Task status
+                status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+
+                -- Task data
+                prompt TEXT NOT NULL,
+                result_url TEXT,
+                r2_key TEXT,
+                error_message TEXT,
+
+                -- Metadata
+                drama_name VARCHAR(255),
+                episode_number INTEGER,
+                entity_name VARCHAR(255),
+
+                -- Timestamps
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                submitted_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                last_poll_at TIMESTAMP,
+
+                -- Retry mechanism
+                retry_count INTEGER DEFAULT 0,
+                max_retries INTEGER DEFAULT 3,
+
+                -- Notes
+                notes TEXT
+            );
+
+            -- Indexes
+            CREATE INDEX IF NOT EXISTS idx_ai_tasks_task_id ON ai_tasks(task_id);
+            CREATE INDEX IF NOT EXISTS idx_ai_tasks_status ON ai_tasks(status);
+            CREATE INDEX IF NOT EXISTS idx_ai_tasks_entity ON ai_tasks(entity_type, entity_id);
+            CREATE INDEX IF NOT EXISTS idx_ai_tasks_created_at ON ai_tasks(created_at);
+
+            -- Comments
+            COMMENT ON TABLE ai_tasks IS 'AI异步任务表，仅用于API调用的任务管理，脚本调用不使用此表';
+            COMMENT ON COLUMN ai_tasks.task_id IS 'RunningHub返回的任务ID，提交前为NULL';
+            COMMENT ON COLUMN ai_tasks.status IS 'PENDING=待提交, SUBMITTED=已提交, QUEUED=排队中, RUNNING=生成中, SUCCESS=成功, FAILED=失败, TIMEOUT=超时';
+            """
+
+            cur.execute(create_table_query)
+            conn.commit()
+            print("Table 'ai_tasks' created successfully.")
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(f"Error creating ai_tasks table: {error}")
+        finally:
+            if conn is not None:
+                conn.close()

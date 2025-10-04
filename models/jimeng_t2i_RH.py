@@ -170,27 +170,24 @@ class JimengT2IRH:
         
         logger.info(f"JimengT2IRH 初始化完成，使用WebApp ID: {self.webapp_id}")
 
-    def generate_image(self,
-                       prompt: str,
-                       width: Optional[int] = None,
-                       height: Optional[int] = None,
-                       timeout: Optional[int] = None,
-                       use_concurrency_control: bool = True,
-                       on_start_callback: Optional[Callable[[], None]] = None) -> Optional[Dict[str, Any]]:
+    def submit_task(self,
+                    prompt: str,
+                    width: Optional[int] = None,
+                    height: Optional[int] = None,
+                    use_concurrency_control: bool = True,
+                    on_start_callback: Optional[Callable[[], None]] = None) -> Optional[Dict[str, Any]]:
         """
-        执行文本转图片生成.
-        NOTE: width 和 height 用于决定比例，而非精确尺寸。
-        
+        提交图片生成任务，立即返回task_id（异步模式）
+
         Args:
             prompt: 提示词
             width: 图片宽度, 用于判断比例 (可选)
             height: 图片高度, 用于判断比例 (可选)
-            timeout: 超时时间（秒），如果为None则使用默认值
             use_concurrency_control: 是否使用并发控制，默认为True
             on_start_callback: 任务成功获取并发许可后执行的回调函数
-            
+
         Returns:
-            生成结果字典，包含图片URL等信息，失败返回None
+            {"task_id": str, "status": str} or None
         """
         slot_acquired = False
         try:
@@ -200,7 +197,7 @@ class JimengT2IRH:
                     logger.info(f"⏳ 并发控制：已提交 {status['submitted']}，运行中 {status['running']}，排队中 {status['queued']}，等待任务完成...")
                     time.sleep(2)
                 slot_acquired = True
-            
+
             if on_start_callback:
                 on_start_callback()
 
@@ -212,7 +209,7 @@ class JimengT2IRH:
                 elif width == height:
                     aspect_ratio_preset = "1" # Square, assuming 1 is square
                 # else height > width, keep default "5"
-            
+
             request_data = {
                 "webappId": self.webapp_id,
                 "apiKey": self.api_key,
@@ -231,7 +228,7 @@ class JimengT2IRH:
                     }
                 ]
             }
-            
+
             # --- Submission loop with exponential backoff and jitter ---
             submission_result = None
             max_submission_retries = 3
@@ -239,19 +236,19 @@ class JimengT2IRH:
 
             for attempt in range(max_submission_retries):
                 response = requests.post(
-                    url=self.run_url, 
-                    headers=self.headers, 
+                    url=self.run_url,
+                    headers=self.headers,
                     data=json.dumps(request_data)
                 )
                 response.raise_for_status()
                 submission_result = response.json()
-                
+
                 logger.info(f"=== 任务提交尝试 {attempt + 1}/{max_submission_retries} 结果 ===")
                 logger.info(f"响应: {submission_result}")
-                
+
                 if submission_result.get('code') == 0:
                     break  # Success
-                
+
                 error_msg = submission_result.get('msg', '未知错误')
                 if 'TASK_QUEUE_MAXED' in error_msg and attempt < max_submission_retries - 1:
                     retry_delay = base_retry_delay * (2 ** attempt) + random.uniform(0, 1)
@@ -260,21 +257,21 @@ class JimengT2IRH:
                 else:
                     logger.error(f"❌ 任务提交失败: {error_msg}")
                     return None
-            
+
             if not submission_result or submission_result.get('code') != 0:
                 logger.error("❌ 任务提交在所有重试后仍然失败。")
                 return None
 
-            # --- Polling ---
+            # --- Return task_id immediately ---
             task_data = submission_result["data"]
             logger.info(f"✅ 任务提交成功!")
             logger.info(f"完整任务数据: {task_data}")
-            
+
             # 验证任务数据结构
             if not task_data or not isinstance(task_data, dict):
                 logger.error(f"❌ 任务数据结构异常: {task_data}")
                 return None
-                
+
             if "taskId" not in task_data:
                 logger.error(f"❌ 任务数据中缺少taskId字段: {task_data}")
                 # 检查是否有其他可能的任务ID字段
@@ -283,24 +280,144 @@ class JimengT2IRH:
                     if field in task_data:
                         logger.info(f"🔍 发现可能的任务ID字段 '{field}': {task_data[field]}")
                 return None
-            
+
             task_id = task_data["taskId"]
+            initial_status = task_data.get("taskStatus", "QUEUED")
+
             logger.info(f"  任务ID: {task_id}")
+            logger.info(f"  初始状态: {initial_status}")
             if "clientId" in task_data:
                 logger.info(f"  客户端ID: {task_data['clientId']}")
-            if "taskStatus" in task_data:
-                logger.info(f"  任务状态: {task_data['taskStatus']}")
             logger.info("=" * 50)
-            
-            result = self._poll_task_status(task_id, timeout or RUNNINGHUB_API_CONFIG["generate_timeout"])
-            return result
-                
+
+            return {
+                "task_id": task_id,
+                "status": initial_status
+            }
+
         except Exception as e:
-            logger.error(f"图片生成过程发生异常: {e}", exc_info=True)
+            logger.error(f"任务提交过程发生异常: {e}", exc_info=True)
             return None
         finally:
             if slot_acquired:
                 _concurrency_manager.task_finished()
+
+    def check_task_status(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """
+        检查单次任务状态（用于前端轮询）
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            {
+                "status": "QUEUED" | "RUNNING" | "SUCCESS" | "FAIL" | "CANCEL",
+                "result": {...}  # 仅当status为SUCCESS时存在
+            }
+            or None (查询失败)
+        """
+        try:
+            status_data = {"apiKey": self.api_key, "taskId": task_id}
+            response = requests.post(
+                url=self.status_url,
+                headers=self.headers,
+                data=json.dumps(status_data),
+                timeout=10
+            )
+            response.raise_for_status()
+            status_result = response.json()
+
+            logger.info(f"🔄 任务状态查询 (任务ID: {task_id}): {status_result}")
+
+            if status_result.get('code') != 0:
+                error_msg = status_result.get('msg', '未知API错误')
+                logger.error(f"❌ API返回错误: code={status_result.get('code')}, msg={error_msg}")
+                return None
+
+            # 处理两种可能的响应格式
+            task_data = status_result.get('data', {})
+
+            if isinstance(task_data, str):
+                task_status = task_data
+            elif isinstance(task_data, dict):
+                task_status = task_data.get('taskStatus')
+            else:
+                logger.warning(f"⚠️ 未知的任务数据格式: {task_data}")
+                return None
+
+            if task_status == 'SUCCESS':
+                logger.info(f"✅ 任务 {task_id} 完成，获取结果...")
+                result = self._get_task_outputs(task_id)
+                if result:
+                    return {
+                        "status": "SUCCESS",
+                        "result": result
+                    }
+                else:
+                    return {
+                        "status": "FAIL",
+                        "error": "Failed to get task outputs"
+                    }
+            elif task_status in ['FAIL', 'CANCEL']:
+                logger.error(f"❌ 任务 {task_id} 失败或被取消: {task_status}")
+                return {
+                    "status": task_status,
+                    "error": f"Task {task_status.lower()}"
+                }
+            elif task_status in ['QUEUED', 'RUNNING']:
+                logger.info(f"⏳ 任务 {task_id} 状态: {task_status}")
+                return {
+                    "status": task_status
+                }
+            else:
+                logger.warning(f"⚠️ 未知任务状态: {task_status}")
+                return {
+                    "status": "UNKNOWN"
+                }
+
+        except Exception as e:
+            logger.error(f"查询任务状态失败: {e}", exc_info=True)
+            return None
+
+    def generate_image(self,
+                       prompt: str,
+                       width: Optional[int] = None,
+                       height: Optional[int] = None,
+                       timeout: Optional[int] = None,
+                       use_concurrency_control: bool = True,
+                       on_start_callback: Optional[Callable[[], None]] = None) -> Optional[Dict[str, Any]]:
+        """
+        执行文本转图片生成（同步模式，保留用于向后兼容）
+        NOTE: width 和 height 用于决定比例，而非精确尺寸。
+
+        Args:
+            prompt: 提示词
+            width: 图片宽度, 用于判断比例 (可选)
+            height: 图片高度, 用于判断比例 (可选)
+            timeout: 超时时间（秒），如果为None则使用默认值
+            use_concurrency_control: 是否使用并发控制，默认为True
+            on_start_callback: 任务成功获取并发许可后执行的回调函数
+
+        Returns:
+            生成结果字典，包含图片URL等信息，失败返回None
+        """
+        # Submit task
+        task_info = self.submit_task(
+            prompt=prompt,
+            width=width,
+            height=height,
+            use_concurrency_control=use_concurrency_control,
+            on_start_callback=on_start_callback
+        )
+
+        if not task_info:
+            return None
+
+        task_id = task_info["task_id"]
+
+        # Poll until completion
+        result = self._poll_task_status(task_id, timeout or RUNNINGHUB_API_CONFIG["generate_timeout"])
+        return result
     
     def _poll_task_status(self, task_id: str, timeout: int) -> Optional[Dict[str, Any]]:
         start_time = time.time()

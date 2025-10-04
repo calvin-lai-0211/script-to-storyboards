@@ -14,41 +14,26 @@ from utils.database import Database
 from procedure.generate_key_prop_definitions import KeyPropDefinitionGenerator
 from models.jimeng_t2i_RH import JimengT2IRH
 from utils.upload import R2Uploader
-from utils.config import R2_CONFIG
+from utils.ai_task_manager import EntityType
+from api.services.async_image_service import AsyncImageService
 from api.middleware.auth import require_auth, UserPrincipal
-
-def to_cdn_url(image_url: str) -> str:
-    """Convert image_url (R2 key or full URL) to CDN URL."""
-    if not image_url:
-        return None
-    # If already a full URL, return as is
-    if image_url.startswith("http://") or image_url.startswith("https://"):
-        return image_url
-    # Otherwise treat as R2 key and prepend CDN base URL
-    return f"{R2_CONFIG['cdn_base_url']}/{image_url}"
+from api.utils import get_db, to_cdn_url
 from api.schemas import (
     GenerateDefinitionsRequest,
     GenerateImageRequest,
+    SubmitTaskRequest,
     StatusResponse,
     ApiResponse,
     PropListResponse,
     PropDetailResponse,
-    GeneratePropImageResponse
+    GeneratePropImageResponse,
+    SubmitTaskResponse,
+    TaskStatusResponse
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
-
-# Database dependency
-def get_db():
-    """Create a new database instance for each request."""
-    from utils.config import DB_CONFIG
-    db = Database(DB_CONFIG)
-    try:
-        yield db
-    finally:
-        pass
 
 @router.get("/prop/{prop_id}", response_model=PropDetailResponse)
 async def get_prop(prop_id: int, db: Database = Depends(get_db), user: UserPrincipal = Depends(require_auth)):
@@ -303,5 +288,89 @@ async def generate_prop_image(prop_id: int, request: GenerateImageRequest, respo
 
     except Exception as e:
         logger.error(f"Error generating prop image: {e}", exc_info=True)
+        response.status_code = 500
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.post("/prop/{prop_id}/submit-task", response_model=SubmitTaskResponse)
+async def submit_prop_image_task(
+    prop_id: int,
+    request: SubmitTaskRequest,
+    response: Response,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
+    """
+    Submit async image generation task for prop.
+    Creates task record in database and returns task_id immediately.
+    Background processor will handle the actual generation.
+    """
+    try:
+        image_prompt = request.image_prompt
+
+        if not image_prompt or not image_prompt.strip():
+            response.status_code = 400
+            return ApiResponse.error(code=400, message="image_prompt is required")
+
+        # Use AsyncImageService to submit task
+        service = AsyncImageService(db)
+        result = service.submit_task(
+            entity_type=EntityType.PROP,
+            entity_id=prop_id,
+            image_prompt=image_prompt
+        )
+
+        return ApiResponse.success(
+            data={
+                "task_id": result["task_id"],
+                "status": result["status"]
+            },
+            message=result["message"]
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        response.status_code = 404 if "not found" in str(e).lower() else 400
+        return ApiResponse.error(code=response.status_code, message=str(e))
+    except Exception as e:
+        logger.error(f"Error creating task: {e}", exc_info=True)
+        response.status_code = 500
+        return ApiResponse.error(code=500, message=str(e))
+
+@router.get("/prop/{prop_id}/task-status/{task_id}", response_model=TaskStatusResponse)
+async def get_prop_task_status(
+    prop_id: int,
+    task_id: str,
+    response: Response,
+    db: Database = Depends(get_db),
+    user: UserPrincipal = Depends(require_auth)
+):
+    """
+    Query task status from database.
+    Background processor handles the actual generation and updates.
+    """
+    try:
+        # Parse task_id as integer (database ID)
+        try:
+            db_task_id = int(task_id)
+        except ValueError:
+            response.status_code = 400
+            return ApiResponse.error(code=400, message="Invalid task_id format")
+
+        # Use AsyncImageService to get status
+        service = AsyncImageService(db)
+        result = service.get_task_status(
+            entity_type=EntityType.PROP,
+            entity_id=prop_id,
+            task_id=db_task_id
+        )
+
+        return ApiResponse.success(data=result, message=result["message"])
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        response.status_code = 404 if "not found" in str(e).lower() else 403
+        return ApiResponse.error(code=response.status_code, message=str(e))
+    except Exception as e:
+        logger.error(f"Error checking task status: {e}", exc_info=True)
         response.status_code = 500
         return ApiResponse.error(code=500, message=str(e))

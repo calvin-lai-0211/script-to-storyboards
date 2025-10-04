@@ -44,7 +44,7 @@ export const characterService = {
   },
 
   /**
-   * Generate character image
+   * Generate character image (sync mode, may timeout)
    */
   async generateCharacterImage(
     id: string | number,
@@ -58,6 +58,45 @@ export const characterService = {
     }>(API_ENDPOINTS.generateCharacterImage(id), {
       method: 'POST',
       body: JSON.stringify({ image_prompt: imagePrompt }),
+      signal
+    })
+  },
+
+  /**
+   * Submit async image generation task
+   */
+  async submitCharacterTask(
+    id: string | number,
+    imagePrompt: string,
+    signal?: AbortSignal
+  ): Promise<{ task_id: string; status: string }> {
+    return apiCall<{
+      task_id: string
+      status: string
+    }>(API_ENDPOINTS.submitCharacterTask(id), {
+      method: 'POST',
+      body: JSON.stringify({ image_prompt: imagePrompt }),
+      signal
+    })
+  },
+
+  /**
+   * Poll task status for async image generation
+   */
+  async getCharacterTaskStatus(
+    id: string | number,
+    taskId: string,
+    signal?: AbortSignal
+  ): Promise<{
+    status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'CANCEL' | 'UNKNOWN'
+    image_url?: string
+    error?: string
+  }> {
+    return apiCall<{
+      status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'CANCEL' | 'UNKNOWN'
+      image_url?: string
+      error?: string
+    }>(API_ENDPOINTS.getCharacterTaskStatus(id, taskId), {
       signal
     })
   }

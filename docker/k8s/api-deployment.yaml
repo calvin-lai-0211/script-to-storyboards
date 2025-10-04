@@ -21,6 +21,9 @@ spec:
           ports:
             - containerPort: 8000
               name: http
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
           env:
             - name: PYTHONUNBUFFERED
               value: "1"
@@ -37,13 +40,13 @@ spec:
               memory: "512Mi"
               cpu: "250m"
             limits:
-              memory: "1Gi"
-              cpu: "1000m"
+              memory: "2Gi"  # 增加内存限制以支持 task processor
+              cpu: "1500m"   # 增加 CPU 限制
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 40  # 增加启动时间，因为 supervisor 启动两个进程
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -51,10 +54,15 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 20
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
+      volumes:
+        - name: logs
+          hostPath:
+            path: /tmp/storyboard-logs  # 本地 K8s 映射到宿主机 /tmp 目录
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
