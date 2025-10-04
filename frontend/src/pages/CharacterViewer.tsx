@@ -159,7 +159,7 @@ const CharacterViewer: React.FC = () => {
           <div className="grid items-start gap-6 lg:grid-cols-3">
             {/* 左侧: 肖像显示区域 (1列) */}
             <div className="lg:col-span-1">
-              <ImageDisplay imageUrl={characterData?.image_url || null} loading={loading} />
+              <ImageDisplay imageUrl={characterData?.image_url || null} loading={loading || generating} />
             </div>
 
             {/* 右侧: 信息区域 (2列) */}

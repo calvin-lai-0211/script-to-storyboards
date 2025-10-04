@@ -6,6 +6,7 @@
 
 - [开发入门指南](getting-started.md) - 本地开发、Docker、K8s 等各种开发模式的完整指南
 - [Git Hooks 和 CI/CD](git-hooks-and-ci.md) - 代码提交规范、Git Hooks 配置和 GitHub Actions 流程
+- [开发工具和实用脚本](tools-and-utilities.md) - R2 图片上传工具、批量处理脚本等
 
 ## 业务技术细节
 
