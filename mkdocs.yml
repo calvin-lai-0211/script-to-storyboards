@@ -54,15 +54,28 @@ markdown_extensions:
 
 nav:
   - 首页: index.md
+  - 开发指南:
+      - 概览: dev/README.md
+      - 快速开始: dev/getting-started.md
+      - Git Hooks & CI: dev/git-hooks-and-ci.md
+      - Google OAuth 认证: dev/google-oauth-authentication.md
+  - 前端文档:
+      - 概览: frontend/README.md
+      - 快速开始: frontend/getting-started.md
+      - 项目结构: frontend/project-structure.md
+      - 组件设计: frontend/components.md
+      - 状态管理: frontend/state-management.md
+      - API 集成: frontend/api-integration.md
+      - 样式指南: frontend/styling.md
+      - 测试指南: frontend/testing.md
+      - 代码质量: frontend/code-quality.md
+      - 构建与部署: frontend/build-and-deployment.md
   - API 文档:
       - 概览: api/README.md
-  - 前端架构:
-      - 架构说明: frontend/architecture.md
-  - Docker 部署:
-      - Docker 指南: DOCKER.md
-  - Kubernetes:
-      - 快速开始: k8s/QUICKSTART.md
-      - 远程部署: k8s/REMOTE-DEPLOY.md
-      - Ingress 配置: k8s/INGRESS-GUIDE.md
-      - API 路由: k8s/API-ROUTING.md
-      - K8s 概览: k8s/README.md
+  - Kubernetes 部署:
+      - 概览: k8s/README.md
+      - 本地环境搭建: k8s/local-setup.md
+      - 本地部署: k8s/local-deployment.md
+      - 远程部署: k8s/remote-deployment.md
+      - 运维手册: k8s/operations.md
+      - 故障排查: k8s/troubleshooting.md

@@ -6,7 +6,12 @@ Script-to-Storyboards API 提供了完整的 RESTful API 接口，用于管理�
 
 **✨ 新功能**: 所有 API 端点现在都包含完整的 TypeScript 类型定义，Swagger/ReDoc 文档中可以查看详细的响应数据结构。
 
-## API 文档访问
+## 在线 API 文档和工具
+
+- [Swagger UI](/api/docs) - 交互式 API 测试工具 (可直接调用接口)
+- [ReDoc](/api/redoc) - 美观的 API 文档阅读界面 (类型定义展示更清晰)
+
+## 本地 API 文档访问
 
 ### Swagger UI (推荐)
 
@@ -482,11 +487,3 @@ app.add_middleware(
 ### 3. 数据格式
 
 所有日期时间字段使用 ISO 8601 格式：`2024-01-01T00:00:00`
-
-## 未来计划
-
-- [ ] 添加用户认证（JWT）
-- [ ] 添加请求限流
-- [ ] 添加 API 版本控制
-- [ ] 添加 WebSocket 支持（实时更新）
-- [x] ~~添加文件上传接口~~ (已完成)

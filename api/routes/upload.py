@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["upload"])
 
 
-@router.api_route("/upload-image", methods=["GET", "POST", "OPTIONS"])
+@router.api_route("/upload-image", methods=["POST"])
 async def upload_image(
     req: Request,
     response: Response,
