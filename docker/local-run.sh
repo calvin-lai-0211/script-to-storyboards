@@ -17,7 +17,7 @@ if [[ "$*" == *"--build"* ]] || ! docker images | grep -q "script-to-storyboards
     BUILD_FLAG="--build"
 fi
 
-cd "$SCRIPT_DIR/compose"
+cd "$SCRIPT_DIR"
 
 # Start services with optional build
 docker-compose up -d $BUILD_FLAG "$@"

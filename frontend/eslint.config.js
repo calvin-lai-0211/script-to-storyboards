@@ -6,7 +6,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'server/', 'coverage/', '**/*.config.js', '**/*.config.ts'] },
+  { ignores: ['dist', 'node_modules', 'server/', 'coverage/', '**/*.config.js', '**/*.config.ts', '**/*.d.ts'] },
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
     languageOptions: {

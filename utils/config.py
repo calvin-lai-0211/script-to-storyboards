@@ -101,3 +101,12 @@ SESSION_CONFIG = {
     "timeout": 2592000,  # 30 days in seconds
     "key_prefix": "st_session:"
 }
+
+# Background Task Processor Configuration
+TASK_PROCESSOR_CONFIG = {
+    "poll_interval": 20,        # 轮询间隔（秒）
+    "task_timeout": 30,        # 任务超时时间（分钟）
+    "max_pending_batch": 5,    # 每次最多处理的 PENDING 任务数
+    "max_active_batch": 50,    # 每次最多查询的 ACTIVE 任务数
+    "max_consecutive_errors": 10  # 连续错误阈值
+}

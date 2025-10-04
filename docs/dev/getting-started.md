@@ -42,8 +42,6 @@
 
 ```bash
 # 在项目根目录
-cd script-to-storyboards
-
 # 确保数据库已创建（仅首次）
 python utils/database.py
 
@@ -56,6 +54,15 @@ python -m api.main
 - API: http://localhost:8001
 - API 文档: http://localhost:8001/api/docs
 - ReDoc: http://localhost:8001/api/redoc
+
+**任务日志查看**:
+
+```bash
+# Task Processor 日志
+tail -f logs/task_processor.log
+
+# API 日志直接在控制台输出
+```
 
 **配置说明**:
 
@@ -107,8 +114,20 @@ VITE_API_BASE_URL=http://localhost:8001
 
 ### 3. 开发工作流
 
+**方式 A：使用一键启动脚本（推荐）**
+
 ```bash
-# 终端1: 启动后端
+# 终端1: 启动后端（API + Task Processor）
+./dev_start.py
+
+# 终端2: 启动前端
+cd frontend && pnpm dev
+```
+
+**方式 B：手动分别启动**
+
+```bash
+# 终端1: 仅启动 API
 python -m api.main
 
 # 终端2: 启动前端

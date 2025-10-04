@@ -20,7 +20,8 @@ describe('useSceneStore', () => {
       drama_name: 'Test Drama',
       episode_number: 1,
       image_url: null,
-      image_prompt: 'Test prompt'
+      image_prompt: 'Test prompt',
+      is_key_scene: false
     }
 
     useSceneStore.getState().setCurrentScene(mockScene)
@@ -35,7 +36,8 @@ describe('useSceneStore', () => {
         drama_name: 'Drama',
         episode_number: 1,
         image_url: null,
-        image_prompt: 'Prompt 1'
+        image_prompt: 'Prompt 1',
+        is_key_scene: false
       }
     ]
 
@@ -50,7 +52,8 @@ describe('useSceneStore', () => {
       drama_name: 'Drama',
       episode_number: 1,
       image_url: null,
-      image_prompt: 'Prompt'
+      image_prompt: 'Prompt',
+      is_key_scene: false
     }
 
     useSceneStore.getState().setCurrentScene(mockScene)

@@ -40,6 +40,8 @@ services:
       - ../utils:/app/utils
       - ../models:/app/models
       - ../procedure:/app/procedure
+      - ../background:/app/background  # 添加 background 目录挂载
+      - ../logs:/app/logs  # 映射日志目录到宿主机，方便查看
     depends_on:
       redis:
         condition: service_healthy

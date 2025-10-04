@@ -11,6 +11,7 @@ interface Scene {
   scene_name: string
   image_url: string | null
   image_prompt: string
+  is_key_scene: boolean
 }
 
 const Scenes: React.FC = () => {
@@ -149,6 +150,11 @@ const Scenes: React.FC = () => {
                 <p className="mb-2 text-xs text-slate-600">
                   {scene.drama_name} - 第{scene.episode_number}集
                 </p>
+                {scene.is_key_scene && (
+                  <span className="mb-2 inline-block rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+                    关键场景
+                  </span>
+                )}
                 <p className="text-xs text-slate-500">ID: {scene.id}</p>
               </div>
             </div>
@@ -167,7 +173,7 @@ const Scenes: React.FC = () => {
       {/* 图片预览模态框 */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
           onClick={() => setPreviewImage(null)}
         >
           <button

@@ -8,6 +8,7 @@ import Props from './pages/Props'
 import CharacterViewer from './pages/CharacterViewer'
 import SceneViewer from './pages/SceneViewer'
 import PropViewer from './pages/PropViewer'
+import { ScriptEditor } from './pages/ScriptEditor'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ScriptsList />} />
           <Route path="/episode/:key" element={<Workspace />} />
+          <Route path="/episode/:key/edit" element={<ScriptEditor />} />
           <Route path="/characters" element={<Characters />} />
           <Route path="/scenes" element={<Scenes />} />
           <Route path="/props" element={<Props />} />

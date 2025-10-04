@@ -6,6 +6,9 @@ export const API_ENDPOINTS = {
   updateCharacterPrompt: (id: string | number) => `${API_BASE_URL}/api/character/${id}/prompt`,
   generateCharacterImage: (id: string | number) =>
     `${API_BASE_URL}/api/character/${id}/generate-image`,
+  submitCharacterTask: (id: string | number) => `${API_BASE_URL}/api/character/${id}/submit-task`,
+  getCharacterTaskStatus: (id: string | number, taskId: string) =>
+    `${API_BASE_URL}/api/character/${id}/task-status/${taskId}`,
 
   // Storyboard endpoints
   generateStoryboard: () => `${API_BASE_URL}/api/storyboard/generate`,
@@ -20,6 +23,11 @@ export const API_ENDPOINTS = {
   getScene: (id: string | number) => `${API_BASE_URL}/api/scene/${id}`,
   getScenes: (key: string) => `${API_BASE_URL}/api/scenes/${encodeURIComponent(key)}`,
   generateScenes: () => `${API_BASE_URL}/api/scenes/generate`,
+  updateScenePrompt: (id: string | number) => `${API_BASE_URL}/api/scene/${id}/prompt`,
+  generateSceneImage: (id: string | number) => `${API_BASE_URL}/api/scene/${id}/generate-image`,
+  submitSceneTask: (id: string | number) => `${API_BASE_URL}/api/scene/${id}/submit-task`,
+  getSceneTaskStatus: (id: string | number, taskId: string) =>
+    `${API_BASE_URL}/api/scene/${id}/task-status/${taskId}`,
 
   // Props endpoints
   getAllProps: () => `${API_BASE_URL}/api/props/all`,
@@ -27,10 +35,15 @@ export const API_ENDPOINTS = {
   generateProps: () => `${API_BASE_URL}/api/props/generate`,
   updatePropPrompt: (id: string | number) => `${API_BASE_URL}/api/prop/${id}/prompt`,
   generatePropImage: (id: string | number) => `${API_BASE_URL}/api/prop/${id}/generate-image`,
+  submitPropTask: (id: string | number) => `${API_BASE_URL}/api/prop/${id}/submit-task`,
+  getPropTaskStatus: (id: string | number, taskId: string) =>
+    `${API_BASE_URL}/api/prop/${id}/task-status/${taskId}`,
 
   // Scripts endpoints
   getAllScripts: () => `${API_BASE_URL}/api/scripts`,
   getScript: (key: string) => `${API_BASE_URL}/api/scripts/${encodeURIComponent(key)}`,
+  updateScriptContent: (key: string) =>
+    `${API_BASE_URL}/api/scripts/${encodeURIComponent(key)}/content`,
 
   // Storyboards endpoints
   getStoryboards: (key: string) => `${API_BASE_URL}/api/storyboards/${encodeURIComponent(key)}`,

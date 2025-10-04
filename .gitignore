@@ -7,6 +7,7 @@ node_modules/
 .env.local
 .env.development.local
 venv/
+logs/
 
 # K8s deployment package (temporary build artifacts)
 k8s-package/

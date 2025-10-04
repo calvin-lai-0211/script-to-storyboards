@@ -47,6 +47,7 @@ export interface SceneData {
   episode_number: number
   image_url: string | null
   image_prompt: string
+  is_key_scene: boolean
 }
 
 // Prop related types

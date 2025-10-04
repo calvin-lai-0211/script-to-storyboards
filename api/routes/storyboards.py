@@ -12,27 +12,18 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from utils.database import Database
 from procedure.make_storyboards import MakeStoryboardsText
+from api.middleware.auth import require_auth, UserPrincipal
+from api.utils import get_db
 from api.schemas import (
     GenerateStoryboardRequest,
     ApiResponse,
     StoryboardResponse,
     MemoryResponse
 )
-from api.middleware.auth import require_auth, UserPrincipal
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
-
-# Database dependency
-def get_db():
-    """Create a new database instance for each request."""
-    from utils.config import DB_CONFIG
-    db = Database(DB_CONFIG)
-    try:
-        yield db
-    finally:
-        pass
 
 @router.get("/storyboards/{key}", response_model=StoryboardResponse)
 async def get_storyboards(

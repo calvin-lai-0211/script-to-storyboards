@@ -175,7 +175,10 @@ const PropViewer: React.FC = () => {
           <div className="grid items-start gap-6 lg:grid-cols-3">
             {/* 左侧: 道具图片显示区域 (1列) - 固定位置 */}
             <div className="lg:sticky lg:top-6 lg:col-span-1">
-              <ImageDisplay imageUrl={propData?.image_url || null} loading={loading || generating} />
+              <ImageDisplay
+                imageUrl={propData?.image_url || null}
+                loading={loading || generating}
+              />
             </div>
 
             {/* 右侧: 信息区域 (2列) - 可滚动 */}
@@ -245,7 +248,7 @@ const PropViewer: React.FC = () => {
                 <div className="mb-3 flex h-8 flex-shrink-0 items-center justify-between">
                   <h3 className="font-display flex items-center text-lg font-bold text-slate-800">
                     <Sparkles className="mr-2 h-5 w-5 text-pink-500" />
-                    道具描述
+                    道具描述 (Prompt)
                   </h3>
                   {!isEditingPrompt ? (
                     <div className="flex items-center space-x-2">
